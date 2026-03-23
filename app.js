@@ -1,4 +1,4 @@
-// Firebase конфиг (твои данные)
+// Firebase конфиг
 const firebaseConfig = {
     apiKey: "AIzaSyCR01An-gdwysrsNfDoPGV0fQ9Zxmk1S4g",
     authDomain: "yablochniy-e5daf.firebaseapp.com",
@@ -8,12 +8,9 @@ const firebaseConfig = {
     appId: "1:909418919751:web:cc3975c0e62b5ae4703e62"
 };
 
-// Подключаем Firebase
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Инициализация Firebase (через глобальные переменные)
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 // Telegram Web App
 const tg = window.Telegram.WebApp;
@@ -25,7 +22,7 @@ async function loadProducts() {
     productsDiv.innerHTML = '<div class="loading">Загрузка товаров...</div>';
     
     try {
-        const querySnapshot = await getDocs(collection(db, 'products'));
+        const querySnapshot = await db.collection('products').get();
         const products = [];
         querySnapshot.forEach(doc => {
             products.push({ id: doc.id, ...doc.data() });
@@ -65,7 +62,7 @@ async function loadProducts() {
                 const user = tg.initDataUnsafe?.user;
                 
                 try {
-                    await addDoc(collection(db, 'orders'), {
+                    await db.collection('orders').add({
                         userId: user?.id || 0,
                         username: user?.username || 'Не указан',
                         productName: productName,
@@ -85,7 +82,7 @@ async function loadProducts() {
         
     } catch (error) {
         console.error('Ошибка загрузки:', error);
-        productsDiv.innerHTML = '<div class="empty">❌ Ошибка загрузки товаров</div>';
+        productsDiv.innerHTML = '<div class="empty">❌ Ошибка загрузки товаров: ' + error.message + '</div>';
     }
 }
 
