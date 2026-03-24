@@ -16,6 +16,68 @@ const db = firebase.firestore();
 const tg = window.Telegram.WebApp;
 tg.expand();
 
+// Получаем данные пользователя
+let user = null;
+try {
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        user = tg.initDataUnsafe.user;
+        console.log('Пользователь:', user);
+    } else {
+        console.warn('Пользователь не авторизован в Telegram');
+    }
+} catch (e) {
+    console.error('Ошибка получения пользователя:', e);
+}
+
+// Функция отправки заявки с фидбеком
+async function sendOrder(product) {
+    // Показываем, что идет отправка
+    const btn = document.querySelector('.buy-btn.active-btn');
+    if (btn) {
+        btn.textContent = 'Отправка...';
+        btn.disabled = true;
+    }
+    
+    try {
+        // Сохраняем заказ в Firebase
+        await db.collection('orders').add({
+            userId: user?.id || 0,
+            username: user?.username || 'Не указан',
+            firstName: user?.first_name || '',
+            lastName: user?.last_name || '',
+            productName: product.name,
+            storage: product.storage,
+            color: product.color,
+            price: product.price,
+            date: new Date().toISOString(),
+            status: 'new'
+        });
+        
+        // Успех: показываем уведомление
+        tg.showAlert('✅ Заявка отправлена! Скоро с вами свяжутся.');
+        
+        // Меняем текст кнопки
+        if (btn) {
+            btn.textContent = '✓ Заявка отправлена';
+            btn.style.background = '#34c759';
+            setTimeout(() => {
+                btn.textContent = 'Купить';
+                btn.disabled = false;
+                btn.style.background = '#007aff';
+            }, 3000);
+        }
+        
+    } catch (error) {
+        console.error('Ошибка:', error);
+        tg.showAlert('❌ Ошибка при отправке. Попробуйте позже.');
+        
+        if (btn) {
+            btn.textContent = 'Купить';
+            btn.disabled = false;
+        }
+    }
+}
+
 // Загружаем товары
 async function loadProducts() {
     const productsDiv = document.getElementById('products');
@@ -54,33 +116,19 @@ async function loadProducts() {
         // Кнопки "Купить"
         document.querySelectorAll('.buy-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const productName = btn.dataset.name;
-                const storage = btn.dataset.storage;
-                const color = btn.dataset.color;
-                const price = parseInt(btn.dataset.price);
-                const user = tg.initDataUnsafe?.user;
-                
-                try {
-                    await db.collection('orders').add({
-                        userId: user?.id || 0,
-                        username: user?.username || 'Не указан',
-                        productName: productName,
-                        storage: storage,
-                        color: color,
-                        price: price,
-                        date: new Date().toISOString()
-                    });
-                    tg.showAlert('✅ Заявка отправлена!');
-                } catch (error) {
-                    console.error(error);
-                    tg.showAlert('❌ Ошибка');
-                }
+                const productData = {
+                    name: btn.dataset.name,
+                    storage: btn.dataset.storage,
+                    color: btn.dataset.color,
+                    price: parseInt(btn.dataset.price)
+                };
+                await sendOrder(productData);
             });
         });
         
     } catch (error) {
-        console.error('Ошибка:', error);
-        productsDiv.innerHTML = '<div class="empty">❌ Ошибка: ' + error.message + '</div>';
+        console.error('Ошибка загрузки:', error);
+        productsDiv.innerHTML = '<div class="empty">❌ Ошибка загрузки товаров: ' + error.message + '</div>';
     }
 }
 
