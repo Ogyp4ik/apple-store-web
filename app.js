@@ -8,7 +8,7 @@ const firebaseConfig = {
     appId: "1:909418919751:web:cc3975c0e62b5ae4703e62"
 };
 
-// Инициализация Firebase (через глобальные переменные)
+// Инициализация Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -22,9 +22,9 @@ async function loadProducts() {
     productsDiv.innerHTML = '<div class="loading">Загрузка товаров...</div>';
     
     try {
-        const querySnapshot = await db.collection('products').get();
+        const snapshot = await db.collection('products').get();
         const products = [];
-        querySnapshot.forEach(doc => {
+        snapshot.forEach(doc => {
             products.push({ id: doc.id, ...doc.data() });
         });
         
@@ -51,14 +51,13 @@ async function loadProducts() {
             productsDiv.appendChild(card);
         });
         
-        // Добавляем обработчики на кнопки
+        // Кнопки "Купить"
         document.querySelectorAll('.buy-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+            btn.addEventListener('click', async () => {
                 const productName = btn.dataset.name;
                 const storage = btn.dataset.storage;
                 const color = btn.dataset.color;
                 const price = parseInt(btn.dataset.price);
-                
                 const user = tg.initDataUnsafe?.user;
                 
                 try {
@@ -71,20 +70,19 @@ async function loadProducts() {
                         price: price,
                         date: new Date().toISOString()
                     });
-                    
-                    tg.showAlert('✅ Заявка отправлена! Скоро с вами свяжутся.');
+                    tg.showAlert('✅ Заявка отправлена!');
                 } catch (error) {
                     console.error(error);
-                    tg.showAlert('❌ Ошибка при отправке заявки');
+                    tg.showAlert('❌ Ошибка');
                 }
             });
         });
         
     } catch (error) {
-        console.error('Ошибка загрузки:', error);
-        productsDiv.innerHTML = '<div class="empty">❌ Ошибка загрузки товаров: ' + error.message + '</div>';
+        console.error('Ошибка:', error);
+        productsDiv.innerHTML = '<div class="empty">❌ Ошибка: ' + error.message + '</div>';
     }
 }
 
-// Запускаем загрузку
+// Запускаем
 loadProducts();
