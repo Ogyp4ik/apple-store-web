@@ -12,34 +12,45 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Telegram Web App
-const tg = window.Telegram.WebApp;
-tg.expand();
-
-// Получаем данные пользователя
+// Ждем загрузку Telegram Web App
+let tg = null;
 let user = null;
-try {
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        user = tg.initDataUnsafe.user;
-        console.log('Пользователь:', user);
-    } else {
-        console.warn('Пользователь не авторизован в Telegram');
+
+function initTelegram() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            tg = window.Telegram.WebApp;
+            tg.expand();
+            
+            // Получаем данные пользователя
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                user = tg.initDataUnsafe.user;
+                console.log('✅ Пользователь получен:', user);
+            } else {
+                console.warn('⚠️ Нет данных пользователя, возможно открыто вне Telegram');
+                user = { id: 0, username: 'Гость' };
+            }
+            
+            // Показываем, что все готово
+            console.log('✅ Telegram Web App готов');
+        } else {
+            console.error('❌ Telegram Web App не найден');
+            user = { id: 0, username: 'Гость' };
+        }
+    } catch (e) {
+        console.error('❌ Ошибка инициализации Telegram:', e);
+        user = { id: 0, username: 'Гость' };
     }
-} catch (e) {
-    console.error('Ошибка получения пользователя:', e);
 }
 
-// Функция отправки заявки с фидбеком
-async function sendOrder(product) {
-    // Показываем, что идет отправка
-    const btn = document.querySelector('.buy-btn.active-btn');
-    if (btn) {
-        btn.textContent = 'Отправка...';
-        btn.disabled = true;
-    }
+// Функция отправки заявки
+async function sendOrder(product, btn) {
+    // Блокируем кнопку и показываем загрузку
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Отправка...';
+    btn.disabled = true;
     
     try {
-        // Сохраняем заказ в Firebase
         await db.collection('orders').add({
             userId: user?.id || 0,
             username: user?.username || 'Не указан',
@@ -53,35 +64,38 @@ async function sendOrder(product) {
             status: 'new'
         });
         
-        // Успех: показываем уведомление
-        tg.showAlert('✅ Заявка отправлена! Скоро с вами свяжутся.');
-        
-        // Меняем текст кнопки
-        if (btn) {
-            btn.textContent = '✓ Заявка отправлена';
-            btn.style.background = '#34c759';
-            setTimeout(() => {
-                btn.textContent = 'Купить';
-                btn.disabled = false;
-                btn.style.background = '#007aff';
-            }, 3000);
+        // Успех
+        if (tg) {
+            tg.showAlert('✅ Заявка отправлена! Скоро с вами свяжутся.');
+        } else {
+            alert('✅ Заявка отправлена!');
         }
+        
+        btn.textContent = '✅ Отправлено!';
+        btn.style.background = '#34c759';
+        
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+            btn.style.background = '#007aff';
+        }, 3000);
         
     } catch (error) {
         console.error('Ошибка:', error);
-        tg.showAlert('❌ Ошибка при отправке. Попробуйте позже.');
-        
-        if (btn) {
-            btn.textContent = 'Купить';
-            btn.disabled = false;
+        if (tg) {
+            tg.showAlert('❌ Ошибка при отправке. Попробуйте позже.');
+        } else {
+            alert('❌ Ошибка при отправке');
         }
+        btn.textContent = originalText;
+        btn.disabled = false;
     }
 }
 
 // Загружаем товары
 async function loadProducts() {
     const productsDiv = document.getElementById('products');
-    productsDiv.innerHTML = '<div class="loading">Загрузка товаров...</div>';
+    productsDiv.innerHTML = '<div class="loading">🔄 Загрузка товаров...</div>';
     
     try {
         const snapshot = await db.collection('products').get();
@@ -91,7 +105,7 @@ async function loadProducts() {
         });
         
         if (products.length === 0) {
-            productsDiv.innerHTML = '<div class="empty">Товаров пока нет</div>';
+            productsDiv.innerHTML = '<div class="empty">📭 Товаров пока нет</div>';
             return;
         }
         
@@ -100,7 +114,7 @@ async function loadProducts() {
             const card = document.createElement('div');
             card.className = 'product-card';
             card.innerHTML = `
-                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}">
+                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300'">
                 <h2>${product.name}</h2>
                 <p class="description">${product.description || ''}</p>
                 <div class="specs">
@@ -108,7 +122,7 @@ async function loadProducts() {
                     <p>🎨 Цвет: ${product.color || '—'}</p>
                 </div>
                 <p class="price">${(product.price || 0).toLocaleString()} ₽</p>
-                <button class="buy-btn" data-name="${product.name}" data-storage="${product.storage || ''}" data-color="${product.color || ''}" data-price="${product.price || 0}">Купить</button>
+                <button class="buy-btn" data-name="${product.name}" data-storage="${product.storage || ''}" data-color="${product.color || ''}" data-price="${product.price || 0}">🛍 Купить</button>
             `;
             productsDiv.appendChild(card);
         });
@@ -122,15 +136,18 @@ async function loadProducts() {
                     color: btn.dataset.color,
                     price: parseInt(btn.dataset.price)
                 };
-                await sendOrder(productData);
+                await sendOrder(productData, btn);
             });
         });
         
+        console.log(`✅ Загружено ${products.length} товаров`);
+        
     } catch (error) {
         console.error('Ошибка загрузки:', error);
-        productsDiv.innerHTML = '<div class="empty">❌ Ошибка загрузки товаров: ' + error.message + '</div>';
+        productsDiv.innerHTML = `<div class="empty">❌ Ошибка загрузки: ${error.message}</div>`;
     }
 }
 
 // Запускаем
+initTelegram();
 loadProducts();
