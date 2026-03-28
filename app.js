@@ -23,11 +23,14 @@ try {
         user = tg.initDataUnsafe.user;
         console.log('✅ Пользователь:', user);
     } else {
-        console.warn('⚠️ Пользователь не авторизован в Telegram');
+        console.warn('⚠️ Пользователь не авторизован');
     }
 } catch (e) {
-    console.error('❌ Ошибка получения пользователя:', e);
+    console.error('❌ Ошибка:', e);
 }
+
+// URL бота
+const BOT_URL = 'https://apple-store-bot-production.up.railway.app';
 
 // Функция отправки заявки
 async function sendOrder(product, btn) {
@@ -48,32 +51,37 @@ async function sendOrder(product, btn) {
             date: new Date().toISOString()
         };
         
+        console.log('📦 Отправка заказа:', orderData);
+        
         // Сохраняем заказ в Firebase
         await db.collection('orders').add(orderData);
         console.log('✅ Заказ сохранен в Firebase');
         
-        // Отправляем уведомление через бота
+        // Отправляем уведомление через бота (POST запрос)
         try {
-            const response = await fetch('https://apple-store-bot-production.up.railway.app/notify', {
+            const response = await fetch(`${BOT_URL}/notify`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify(orderData)
             });
             
+            console.log('📡 Ответ от бота:', response.status);
+            
             if (response.ok) {
-                console.log('✅ Уведомление отправлено боту');
+                console.log('✅ Уведомление отправлено');
             } else {
-                console.log('⚠️ Бот ответил ошибкой:', await response.text());
+                const text = await response.text();
+                console.log('⚠️ Ошибка бота:', text);
             }
         } catch (e) {
-            console.log('⚠️ Не удалось отправить уведомление боту:', e.message);
+            console.log('⚠️ Ошибка отправки:', e.message);
         }
         
         // Уведомляем пользователя
         if (tg) {
             tg.showAlert('✅ Заявка отправлена! Скоро с вами свяжутся.');
-        } else {
-            alert('✅ Заявка отправлена!');
         }
         
         btn.textContent = '✅ Отправлено!';
@@ -88,9 +96,7 @@ async function sendOrder(product, btn) {
     } catch (error) {
         console.error('❌ Ошибка:', error);
         if (tg) {
-            tg.showAlert('❌ Ошибка при отправке. Попробуйте позже.');
-        } else {
-            alert('❌ Ошибка при отправке');
+            tg.showAlert('❌ Ошибка при отправке');
         }
         btn.textContent = originalText;
         btn.disabled = false;
@@ -121,7 +127,7 @@ async function loadProducts() {
             const card = document.createElement('div');
             card.className = 'product-card';
             card.innerHTML = `
-                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300'">
+                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}">
                 <h2>${escapeHtml(product.name)}</h2>
                 <p class="description">${escapeHtml(product.description || '')}</p>
                 <div class="specs">
@@ -134,7 +140,6 @@ async function loadProducts() {
             productsDiv.appendChild(card);
         });
         
-        // Кнопки "Купить"
         document.querySelectorAll('.buy-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const productData = {
@@ -150,12 +155,11 @@ async function loadProducts() {
         console.log(`✅ Загружено ${products.length} товаров`);
         
     } catch (error) {
-        console.error('❌ Ошибка загрузки:', error);
-        productsDiv.innerHTML = `<div class="empty">❌ Ошибка загрузки: ${error.message}</div>`;
+        console.error('❌ Ошибка:', error);
+        productsDiv.innerHTML = `<div class="empty">❌ Ошибка: ${error.message}</div>`;
     }
 }
 
-// Простая функция для экранирования HTML
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -163,5 +167,4 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Запускаем загрузку товаров
 loadProducts();
