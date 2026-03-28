@@ -1,4 +1,3 @@
-// Firebase конфиг
 const firebaseConfig = {
     apiKey: "AIzaSyCR01An-gdwysrsNfDoPGV0fQ9Zxmk1S4g",
     authDomain: "yablochniy-e5daf.firebaseapp.com",
@@ -8,31 +7,23 @@ const firebaseConfig = {
     appId: "1:909418919751:web:cc3975c0e62b5ae4703e62"
 };
 
-// Инициализация Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Telegram Web App
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// Получаем данные пользователя
 let user = null;
 try {
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         user = tg.initDataUnsafe.user;
-        console.log('✅ Пользователь:', user);
-    } else {
-        console.warn('⚠️ Пользователь не авторизован');
     }
-} catch (e) {
-    console.error('❌ Ошибка:', e);
-}
+} catch (e) {}
 
-// URL бота
-const BOT_URL = 'https://apple-store-bot-production.up.railway.app';
+const TELEGRAM_TOKEN = "8754493631:AAH9vZvWTS-SOHwk5Y0y7Rbr6klwmgeSgN0";
+const GROUP_ID = "-1003850642883";
+const ADMIN_IDS = ["7441684316", "1317122793", "1015865721"];
 
-// Функция отправки заявки
 async function sendOrder(product, btn) {
     const originalText = btn.textContent;
     btn.textContent = '⏳ Отправка...';
@@ -42,8 +33,6 @@ async function sendOrder(product, btn) {
         const orderData = {
             userId: user?.id || 0,
             username: user?.username || 'Не указан',
-            firstName: user?.first_name || '',
-            lastName: user?.last_name || '',
             productName: product.name,
             storage: product.storage,
             color: product.color,
@@ -51,42 +40,30 @@ async function sendOrder(product, btn) {
             date: new Date().toISOString()
         };
         
-        console.log('📦 Отправка заказа:', orderData);
-        
-        // Сохраняем заказ в Firebase
         await db.collection('orders').add(orderData);
-        console.log('✅ Заказ сохранен в Firebase');
         
-        // Отправляем уведомление через бота (POST запрос)
-        try {
-            const response = await fetch(`${BOT_URL}/notify`, {
+        const message = `🛍 НОВЫЙ ЗАКАЗ!\n\n👤 Клиент: @${orderData.username}\n📱 Товар: ${orderData.productName}\n💾 Память: ${orderData.storage}\n🎨 Цвет: ${orderData.color}\n💰 Сумма: ${orderData.price.toLocaleString()} ₽`;
+        
+        // Отправляем в группу
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: GROUP_ID, text: message })
+        });
+        
+        // Отправляем админам
+        for (const adminId of ADMIN_IDS) {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(orderData)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: adminId, text: message })
             });
-            
-            console.log('📡 Ответ от бота:', response.status);
-            
-            if (response.ok) {
-                console.log('✅ Уведомление отправлено');
-            } else {
-                const text = await response.text();
-                console.log('⚠️ Ошибка бота:', text);
-            }
-        } catch (e) {
-            console.log('⚠️ Ошибка отправки:', e.message);
         }
         
-        // Уведомляем пользователя
-        if (tg) {
-            tg.showAlert('✅ Заявка отправлена! Скоро с вами свяжутся.');
-        }
+        if (tg) tg.showAlert('✅ Заявка отправлена!');
         
         btn.textContent = '✅ Отправлено!';
         btn.style.background = '#34c759';
-        
         setTimeout(() => {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -94,31 +71,25 @@ async function sendOrder(product, btn) {
         }, 3000);
         
     } catch (error) {
-        console.error('❌ Ошибка:', error);
-        if (tg) {
-            tg.showAlert('❌ Ошибка при отправке');
-        }
+        console.error(error);
+        if (tg) tg.showAlert('❌ Ошибка');
         btn.textContent = originalText;
         btn.disabled = false;
     }
 }
 
-// Загружаем товары
 async function loadProducts() {
     const productsDiv = document.getElementById('products');
     if (!productsDiv) return;
-    
-    productsDiv.innerHTML = '<div class="loading">🔄 Загрузка товаров...</div>';
+    productsDiv.innerHTML = '<div class="loading">🔄 Загрузка...</div>';
     
     try {
         const snapshot = await db.collection('products').get();
         const products = [];
-        snapshot.forEach(doc => {
-            products.push({ id: doc.id, ...doc.data() });
-        });
+        snapshot.forEach(doc => products.push(doc.data()));
         
         if (products.length === 0) {
-            productsDiv.innerHTML = '<div class="empty">📭 Товаров пока нет</div>';
+            productsDiv.innerHTML = '<div class="empty">📭 Товаров нет</div>';
             return;
         }
         
@@ -127,44 +98,30 @@ async function loadProducts() {
             const card = document.createElement('div');
             card.className = 'product-card';
             card.innerHTML = `
-                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}">
-                <h2>${escapeHtml(product.name)}</h2>
-                <p class="description">${escapeHtml(product.description || '')}</p>
-                <div class="specs">
-                    <p>💾 Память: ${escapeHtml(product.storage || '—')}</p>
-                    <p>🎨 Цвет: ${escapeHtml(product.color || '—')}</p>
-                </div>
-                <p class="price">${(product.price || 0).toLocaleString()} ₽</p>
-                <button class="buy-btn" data-name="${escapeHtml(product.name)}" data-storage="${escapeHtml(product.storage || '')}" data-color="${escapeHtml(product.color || '')}" data-price="${product.price || 0}">🛍 Купить</button>
+                <img src="${product.image || 'https://via.placeholder.com/300'}">
+                <h2>${product.name}</h2>
+                <p>${product.description || ''}</p>
+                <p>💾 ${product.storage} | 🎨 ${product.color}</p>
+                <p class="price">${product.price.toLocaleString()} ₽</p>
+                <button class="buy-btn" data-name="${product.name}" data-storage="${product.storage}" data-color="${product.color}" data-price="${product.price}">🛍 Купить</button>
             `;
             productsDiv.appendChild(card);
         });
         
         document.querySelectorAll('.buy-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const productData = {
+                await sendOrder({
                     name: btn.dataset.name,
                     storage: btn.dataset.storage,
                     color: btn.dataset.color,
                     price: parseInt(btn.dataset.price)
-                };
-                await sendOrder(productData, btn);
+                }, btn);
             });
         });
         
-        console.log(`✅ Загружено ${products.length} товаров`);
-        
     } catch (error) {
-        console.error('❌ Ошибка:', error);
-        productsDiv.innerHTML = `<div class="empty">❌ Ошибка: ${error.message}</div>`;
+        productsDiv.innerHTML = '<div class="empty">❌ Ошибка загрузки</div>';
     }
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }
 
 loadProducts();
