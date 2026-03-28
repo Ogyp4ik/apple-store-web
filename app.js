@@ -12,46 +12,31 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Ждем загрузку Telegram Web App
-let tg = null;
-let user = null;
+// Telegram Web App
+const tg = window.Telegram.WebApp;
+tg.expand();
 
-function initTelegram() {
-    try {
-        if (window.Telegram && window.Telegram.WebApp) {
-            tg = window.Telegram.WebApp;
-            tg.expand();
-            
-            // Получаем данные пользователя
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                user = tg.initDataUnsafe.user;
-                console.log('✅ Пользователь получен:', user);
-            } else {
-                console.warn('⚠️ Нет данных пользователя, возможно открыто вне Telegram');
-                user = { id: 0, username: 'Гость' };
-            }
-            
-            // Показываем, что все готово
-            console.log('✅ Telegram Web App готов');
-        } else {
-            console.error('❌ Telegram Web App не найден');
-            user = { id: 0, username: 'Гость' };
-        }
-    } catch (e) {
-        console.error('❌ Ошибка инициализации Telegram:', e);
-        user = { id: 0, username: 'Гость' };
+// Получаем данные пользователя
+let user = null;
+try {
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        user = tg.initDataUnsafe.user;
+        console.log('✅ Пользователь:', user);
+    } else {
+        console.warn('⚠️ Пользователь не авторизован в Telegram');
     }
+} catch (e) {
+    console.error('❌ Ошибка получения пользователя:', e);
 }
 
 // Функция отправки заявки
 async function sendOrder(product, btn) {
-    // Блокируем кнопку и показываем загрузку
     const originalText = btn.textContent;
     btn.textContent = '⏳ Отправка...';
     btn.disabled = true;
     
     try {
-        await db.collection('orders').add({
+        const orderData = {
             userId: user?.id || 0,
             username: user?.username || 'Не указан',
             firstName: user?.first_name || '',
@@ -60,11 +45,31 @@ async function sendOrder(product, btn) {
             storage: product.storage,
             color: product.color,
             price: product.price,
-            date: new Date().toISOString(),
-            status: 'new'
-        });
+            date: new Date().toISOString()
+        };
         
-        // Успех
+        // Сохраняем заказ в Firebase
+        await db.collection('orders').add(orderData);
+        console.log('✅ Заказ сохранен в Firebase');
+        
+        // Отправляем уведомление через бота
+        try {
+            const response = await fetch('https://apple-store-bot-production.up.railway.app/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+            
+            if (response.ok) {
+                console.log('✅ Уведомление отправлено боту');
+            } else {
+                console.log('⚠️ Бот ответил ошибкой:', await response.text());
+            }
+        } catch (e) {
+            console.log('⚠️ Не удалось отправить уведомление боту:', e.message);
+        }
+        
+        // Уведомляем пользователя
         if (tg) {
             tg.showAlert('✅ Заявка отправлена! Скоро с вами свяжутся.');
         } else {
@@ -81,7 +86,7 @@ async function sendOrder(product, btn) {
         }, 3000);
         
     } catch (error) {
-        console.error('Ошибка:', error);
+        console.error('❌ Ошибка:', error);
         if (tg) {
             tg.showAlert('❌ Ошибка при отправке. Попробуйте позже.');
         } else {
@@ -95,6 +100,8 @@ async function sendOrder(product, btn) {
 // Загружаем товары
 async function loadProducts() {
     const productsDiv = document.getElementById('products');
+    if (!productsDiv) return;
+    
     productsDiv.innerHTML = '<div class="loading">🔄 Загрузка товаров...</div>';
     
     try {
@@ -115,14 +122,14 @@ async function loadProducts() {
             card.className = 'product-card';
             card.innerHTML = `
                 <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300'">
-                <h2>${product.name}</h2>
-                <p class="description">${product.description || ''}</p>
+                <h2>${escapeHtml(product.name)}</h2>
+                <p class="description">${escapeHtml(product.description || '')}</p>
                 <div class="specs">
-                    <p>💾 Память: ${product.storage || '—'}</p>
-                    <p>🎨 Цвет: ${product.color || '—'}</p>
+                    <p>💾 Память: ${escapeHtml(product.storage || '—')}</p>
+                    <p>🎨 Цвет: ${escapeHtml(product.color || '—')}</p>
                 </div>
                 <p class="price">${(product.price || 0).toLocaleString()} ₽</p>
-                <button class="buy-btn" data-name="${product.name}" data-storage="${product.storage || ''}" data-color="${product.color || ''}" data-price="${product.price || 0}">🛍 Купить</button>
+                <button class="buy-btn" data-name="${escapeHtml(product.name)}" data-storage="${escapeHtml(product.storage || '')}" data-color="${escapeHtml(product.color || '')}" data-price="${product.price || 0}">🛍 Купить</button>
             `;
             productsDiv.appendChild(card);
         });
@@ -143,11 +150,18 @@ async function loadProducts() {
         console.log(`✅ Загружено ${products.length} товаров`);
         
     } catch (error) {
-        console.error('Ошибка загрузки:', error);
+        console.error('❌ Ошибка загрузки:', error);
         productsDiv.innerHTML = `<div class="empty">❌ Ошибка загрузки: ${error.message}</div>`;
     }
 }
 
-// Запускаем
-initTelegram();
+// Простая функция для экранирования HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Запускаем загрузку товаров
 loadProducts();
