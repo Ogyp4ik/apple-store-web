@@ -51,13 +51,18 @@ async function sendOrder(product, btn) {
             body: JSON.stringify({ chat_id: GROUP_ID, text: message })
         });
         
-        // Отправляем админам
+        // Отправляем админам (включая того, кто сделал заказ)
         for (const adminId of ADMIN_IDS) {
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: adminId, text: message })
-            });
+            try {
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: adminId, text: message })
+                });
+                console.log(`✅ Отправлено админу ${adminId}`);
+            } catch (e) {
+                console.log(`⚠️ Не отправилось админу ${adminId}:`, e.message);
+            }
         }
         
         if (tg) tg.showAlert('✅ Заявка отправлена!');
