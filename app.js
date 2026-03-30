@@ -164,7 +164,13 @@ async function showCategories() {
         const snapshot = await db.collection('categories').orderBy('order').get();
         const categories = [];
         snapshot.forEach(doc => {
-            categories.push({ id: doc.id, ...doc.data() });
+            const data = doc.data();
+            console.log(`📁 Категория: ${data.name}, ID документа: ${doc.id}`);
+            categories.push({ 
+                docId: doc.id,      // настоящий ID документа
+                name: data.name,
+                image: data.image
+            });
         });
         
         if (categories.length === 0) {
@@ -179,7 +185,8 @@ async function showCategories() {
             const card = document.createElement('div');
             card.className = 'category-card';
             card.style.cursor = 'pointer';
-            card.onclick = () => showProducts(category.id, category.name);
+            // Передаем настоящий ID документа
+            card.onclick = () => showProducts(category.docId, category.name);
             
             const categoryImage = category.image || 'https://via.placeholder.com/300?text=' + encodeURIComponent(category.name);
             
@@ -202,45 +209,25 @@ async function showCategories() {
     }
 }
 
+// Показать товары в категории
 async function showProducts(categoryId, categoryName) {
     const productsDiv = document.getElementById('products');
     if (!productsDiv) return;
     
+    console.log(`🔍 showProducts вызвана с categoryId = "${categoryId}", categoryName = "${categoryName}"`);
+    
     productsDiv.innerHTML = `
         <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-        <div class="loading">🔄 Загрузка товаров...</div>
+        <div class="loading">🔄 Загрузка товаров для категории "${escapeHtml(categoryName)}"...</div>
     `;
     
     try {
-        console.log(`🔍 Ищем товары с categoryId = "${categoryId}"`);
-        
-        // Показываем ID категории на экране
-        productsDiv.innerHTML = `
-            <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-            <div>🔍 Поиск товаров для ID: <b>${categoryId}</b> (${categoryName})</div>
-            <div class="loading">🔄 Загрузка...</div>
-        `;
-        
-        // Получаем ВСЕ товары и показываем их categoryId
-        const allProducts = await db.collection('products').get();
-        let allProductsInfo = '';
-        allProducts.forEach(doc => {
-            const data = doc.data();
-            allProductsInfo += `<div>Товар: ${data.name} | categoryId: "${data.categoryId}"</div>`;
-        });
-        
-        productsDiv.innerHTML = `
-            <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-            <div>🔍 Ищем товары с ID категории: <b>${categoryId}</b></div>
-            <div>📦 Все товары в базе:</div>
-            ${allProductsInfo}
-            <div class="loading">🔄 Выполняем фильтрацию...</div>
-        `;
-        
-        // Теперь делаем запрос с фильтрацией
+        // Ищем товары с categoryId, равным ID документа категории
         const snapshot = await db.collection('products')
             .where('categoryId', '==', categoryId)
             .get();
+        
+        console.log(`📦 Найдено товаров: ${snapshot.size}`);
         
         const products = [];
         snapshot.forEach(doc => {
@@ -250,16 +237,12 @@ async function showProducts(categoryId, categoryName) {
         if (products.length === 0) {
             productsDiv.innerHTML = `
                 <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-                <div>🔍 Ищем товары с ID категории: <b>${categoryId}</b></div>
-                <div>📦 Всего товаров в базе: ${allProducts.size}</div>
-                ${allProductsInfo}
-                <div class="empty">❌ Нет товаров с categoryId = "${categoryId}"</div>
+                <div class="empty">📭 В категории "${escapeHtml(categoryName)}" пока нет товаров</div>
             `;
             addCustomOrderButton();
             return;
         }
         
-        // Если товары найдены — показываем их
         productsDiv.innerHTML = `
             <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
             <h2 class="category-title">${escapeHtml(categoryName)}</h2>
@@ -303,11 +286,12 @@ async function showProducts(categoryId, categoryName) {
         console.error('❌ Ошибка:', error);
         productsDiv.innerHTML = `
             <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-            <div class="empty">❌ Ошибка: ${error.message}</div>
+            <div class="empty">❌ Ошибка загрузки: ${error.message}</div>
         `;
         addCustomOrderButton();
     }
 }
+
 // Добавить кнопку "Заказ под заказ"
 function addCustomOrderButton() {
     const productsDiv = document.getElementById('products');
