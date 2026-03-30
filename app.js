@@ -29,22 +29,24 @@ try {
     console.error('❌ Ошибка:', e);
 }
 
-// Конфиг Telegram
+// Конфиг Telegram для уведомлений
 const TELEGRAM_TOKEN = "8754493631:AAH9vZvWTS-SOHwk5Y0y7Rbr6klwmgeSgN0";
 const GROUP_ID = "-1003850642883";
 const ADMIN_IDS = ["7441684316", "1317122793", "1015865721"];
 
-// Функция отправки уведомления в Telegram
+// Состояние приложения
+let currentCategoryId = null;
+let currentProducts = [];
+
+// Функция отправки уведомления
 async function sendTelegramNotification(message) {
     try {
-        // Отправляем в группу
         await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: GROUP_ID, text: message })
         });
         
-        // Отправляем админам
         for (const adminId of ADMIN_IDS) {
             await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
                 method: 'POST',
@@ -52,10 +54,8 @@ async function sendTelegramNotification(message) {
                 body: JSON.stringify({ chat_id: adminId, text: message })
             });
         }
-        
-        console.log('✅ Уведомление отправлено');
     } catch (error) {
-        console.error('❌ Ошибка отправки:', error);
+        console.error('❌ Ошибка:', error);
     }
 }
 
@@ -79,11 +79,8 @@ async function sendOrder(product, btn) {
             type: 'product'
         };
         
-        // Сохраняем в Firebase
         await db.collection('orders').add(orderData);
-        console.log('✅ Заказ сохранен');
         
-        // Формируем сообщение
         const message = `
 🛍 НОВЫЙ ЗАКАЗ!
 
@@ -136,7 +133,6 @@ async function sendCustomOrder() {
         };
         
         await db.collection('orders').add(orderData);
-        console.log('✅ Заказ под заказ сохранен');
         
         const message = `
 📦 ЗАКАЗ ПОД ЗАКАЗ!
@@ -161,64 +157,104 @@ async function sendCustomOrder() {
     }
 }
 
-// Загружаем товары
-async function loadProducts() {
+// Показать список категорий
+async function showCategories() {
     const productsDiv = document.getElementById('products');
     if (!productsDiv) return;
     
-    productsDiv.innerHTML = '<div class="loading">🔄 Загрузка товаров...</div>';
+    productsDiv.innerHTML = '<div class="loading">🔄 Загрузка категорий...</div>';
     
     try {
-        const snapshot = await db.collection('products').get();
+        const snapshot = await db.collection('categories').orderBy('order').get();
+        const categories = [];
+        snapshot.forEach(doc => {
+            categories.push({ id: doc.id, ...doc.data() });
+        });
+        
+        if (categories.length === 0) {
+            productsDiv.innerHTML = '<div class="empty">📭 Категории пока не добавлены</div>';
+            return;
+        }
+        
+        productsDiv.innerHTML = '';
+        
+        categories.forEach(category => {
+            const card = document.createElement('div');
+            card.className = 'category-card';
+            card.style.cursor = 'pointer';
+            card.onclick = () => showProducts(category.id, category.name);
+            card.innerHTML = `
+                <div class="category-icon">📁</div>
+                <h3>${escapeHtml(category.name)}</h3>
+                <p class="category-count">Нажмите для просмотра</p>
+            `;
+            productsDiv.appendChild(card);
+        });
+        
+        // Добавляем кнопку "Заказ под заказ"
+        addCustomOrderButton();
+        
+    } catch (error) {
+        console.error('❌ Ошибка:', error);
+        productsDiv.innerHTML = `<div class="empty">❌ Ошибка загрузки: ${error.message}</div>`;
+    }
+}
+
+// Показать товары в категории
+async function showProducts(categoryId, categoryName) {
+    const productsDiv = document.getElementById('products');
+    if (!productsDiv) return;
+    
+    productsDiv.innerHTML = `
+        <div class="back-button" onclick="window.showCategories()">
+            ← Назад к категориям
+        </div>
+        <div class="loading">🔄 Загрузка товаров...</div>
+    `;
+    
+    try {
+        const snapshot = await db.collection('products')
+            .where('categoryId', '==', categoryId)
+            .get();
+        
         const products = [];
         snapshot.forEach(doc => {
             products.push({ id: doc.id, ...doc.data() });
         });
         
         if (products.length === 0) {
-            productsDiv.innerHTML = '<div class="empty">📭 Товаров пока нет</div>';
-        } else {
-            productsDiv.innerHTML = '';
-            products.forEach(product => {
-                const card = document.createElement('div');
-                card.className = 'product-card';
-                card.innerHTML = `
-                    <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}">
-                    <h2>${escapeHtml(product.name)}</h2>
-                    <p class="description">${escapeHtml(product.description || '')}</p>
-                    <div class="specs">
-                        <p>💾 Память: ${escapeHtml(product.storage || '—')}</p>
-                        <p>🎨 Цвет: ${escapeHtml(product.color || '—')}</p>
-                    </div>
-                    <p class="price">${(product.price || 0).toLocaleString()} ₽</p>
-                    <button class="buy-btn" data-name="${escapeHtml(product.name)}" data-storage="${escapeHtml(product.storage || '')}" data-color="${escapeHtml(product.color || '')}" data-price="${product.price || 0}">🛍 Купить</button>
-                `;
-                productsDiv.appendChild(card);
-            });
+            productsDiv.innerHTML = `
+                <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
+                <div class="empty">📭 В категории "${categoryName}" пока нет товаров</div>
+            `;
+            addCustomOrderButton();
+            return;
         }
         
-        // Добавляем кнопку "Заказ под заказ"
-        const customOrderBtn = document.createElement('button');
-        customOrderBtn.textContent = '📦 Заказать под заказ';
-        customOrderBtn.className = 'custom-order-btn';
-        customOrderBtn.style.cssText = `
-            width: 100%;
-            padding: 15px;
-            margin-top: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s;
+        productsDiv.innerHTML = `
+            <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
+            <h2 class="category-title">${escapeHtml(categoryName)}</h2>
+            <div id="products-list"></div>
         `;
-        customOrderBtn.onmouseover = () => customOrderBtn.style.transform = 'scale(1.02)';
-        customOrderBtn.onmouseout = () => customOrderBtn.style.transform = 'scale(1)';
-        customOrderBtn.onclick = () => sendCustomOrder();
         
-        productsDiv.after(customOrderBtn);
+        const productsList = document.getElementById('products-list');
+        
+        products.forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300'">
+                <h2>${escapeHtml(product.name)}</h2>
+                <p class="description">${escapeHtml(product.description || '')}</p>
+                <div class="specs">
+                    <p>💾 Память: ${escapeHtml(product.storage || '—')}</p>
+                    <p>🎨 Цвет: ${escapeHtml(product.color || '—')}</p>
+                </div>
+                <p class="price">${(product.price || 0).toLocaleString()} ₽</p>
+                <button class="buy-btn" data-name="${escapeHtml(product.name)}" data-storage="${escapeHtml(product.storage || '—')}" data-color="${escapeHtml(product.color || '—')}" data-price="${product.price || 0}">🛍 Купить</button>
+            `;
+            productsList.appendChild(card);
+        });
         
         // Обработчики кнопок "Купить"
         document.querySelectorAll('.buy-btn').forEach(btn => {
@@ -233,14 +269,52 @@ async function loadProducts() {
             });
         });
         
-        console.log(`✅ Загружено ${products.length} товаров`);
+        addCustomOrderButton();
         
     } catch (error) {
         console.error('❌ Ошибка:', error);
-        productsDiv.innerHTML = `<div class="empty">❌ Ошибка загрузки: ${error.message}</div>`;
+        productsDiv.innerHTML = `
+            <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
+            <div class="empty">❌ Ошибка загрузки: ${error.message}</div>
+        `;
+        addCustomOrderButton();
     }
 }
 
+// Добавить кнопку "Заказ под заказ"
+function addCustomOrderButton() {
+    const productsDiv = document.getElementById('products');
+    if (!productsDiv) return;
+    
+    // Удаляем старую кнопку, если есть
+    const oldBtn = document.getElementById('custom-order-btn');
+    if (oldBtn) oldBtn.remove();
+    
+    const customOrderBtn = document.createElement('button');
+    customOrderBtn.id = 'custom-order-btn';
+    customOrderBtn.textContent = '📦 Заказать под заказ';
+    customOrderBtn.className = 'custom-order-btn';
+    customOrderBtn.style.cssText = `
+        width: 100%;
+        padding: 15px;
+        margin-top: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+    `;
+    customOrderBtn.onmouseover = () => customOrderBtn.style.transform = 'scale(1.02)';
+    customOrderBtn.onmouseout = () => customOrderBtn.style.transform = 'scale(1)';
+    customOrderBtn.onclick = () => sendCustomOrder();
+    
+    productsDiv.appendChild(customOrderBtn);
+}
+
+// Экранирование HTML
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -248,5 +322,9 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Запускаем
-loadProducts();
+// Глобальные функции для навигации
+window.showCategories = showCategories;
+window.showProducts = showProducts;
+
+// Запускаем показ категорий
+showCategories();
