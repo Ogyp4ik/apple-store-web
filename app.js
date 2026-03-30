@@ -202,7 +202,7 @@ async function showCategories() {
     }
 }
 
-// Показать товары в категории (ВРЕМЕННО: показывает ВСЕ товары)
+// Показать товары в категории (с фильтрацией)
 async function showProducts(categoryId, categoryName) {
     const productsDiv = document.getElementById('products');
     if (!productsDiv) return;
@@ -213,22 +213,24 @@ async function showProducts(categoryId, categoryName) {
     `;
     
     try {
-        // ВРЕМЕННО: показываем ВСЕ товары без фильтрации
-        const snapshot = await db.collection('products').get();
+        console.log(`🔍 Запрос товаров для категории: ${categoryId} (${categoryName})`);
         
-        console.log(`📦 Всего товаров в базе: ${snapshot.size}`);
+        // Запрос с фильтрацией по categoryId
+        const snapshot = await db.collection('products')
+            .where('categoryId', '==', categoryId)
+            .get();
+        
+        console.log(`📦 Найдено товаров: ${snapshot.size}`);
         
         const products = [];
         snapshot.forEach(doc => {
-            const data = doc.data();
-            console.log(`Товар: ${data.name}, categoryId: ${data.categoryId}`);
-            products.push({ id: doc.id, ...data });
+            products.push({ id: doc.id, ...doc.data() });
         });
         
         if (products.length === 0) {
             productsDiv.innerHTML = `
                 <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-                <div class="empty">📭 Товаров пока нет</div>
+                <div class="empty">📭 В категории "${escapeHtml(categoryName)}" пока нет товаров</div>
             `;
             addCustomOrderButton();
             return;
@@ -277,7 +279,7 @@ async function showProducts(categoryId, categoryName) {
         console.error('❌ Ошибка:', error);
         productsDiv.innerHTML = `
             <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-            <div class="empty">❌ Ошибка: ${error.message}</div>
+            <div class="empty">❌ Ошибка загрузки: ${error.message}</div>
         `;
         addCustomOrderButton();
     }
@@ -288,7 +290,6 @@ function addCustomOrderButton() {
     const productsDiv = document.getElementById('products');
     if (!productsDiv) return;
     
-    // Удаляем старую кнопку, если есть
     const oldBtn = document.getElementById('custom-order-btn');
     if (oldBtn) oldBtn.remove();
     
