@@ -202,7 +202,6 @@ async function showCategories() {
     }
 }
 
-// Показать товары в категории (с фильтрацией)
 async function showProducts(categoryId, categoryName) {
     const productsDiv = document.getElementById('products');
     if (!productsDiv) return;
@@ -213,14 +212,35 @@ async function showProducts(categoryId, categoryName) {
     `;
     
     try {
-        console.log(`🔍 Запрос товаров для категории: ${categoryId} (${categoryName})`);
+        console.log(`🔍 Ищем товары с categoryId = "${categoryId}"`);
         
-        // Запрос с фильтрацией по categoryId
+        // Показываем ID категории на экране
+        productsDiv.innerHTML = `
+            <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
+            <div>🔍 Поиск товаров для ID: <b>${categoryId}</b> (${categoryName})</div>
+            <div class="loading">🔄 Загрузка...</div>
+        `;
+        
+        // Получаем ВСЕ товары и показываем их categoryId
+        const allProducts = await db.collection('products').get();
+        let allProductsInfo = '';
+        allProducts.forEach(doc => {
+            const data = doc.data();
+            allProductsInfo += `<div>Товар: ${data.name} | categoryId: "${data.categoryId}"</div>`;
+        });
+        
+        productsDiv.innerHTML = `
+            <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
+            <div>🔍 Ищем товары с ID категории: <b>${categoryId}</b></div>
+            <div>📦 Все товары в базе:</div>
+            ${allProductsInfo}
+            <div class="loading">🔄 Выполняем фильтрацию...</div>
+        `;
+        
+        // Теперь делаем запрос с фильтрацией
         const snapshot = await db.collection('products')
             .where('categoryId', '==', categoryId)
             .get();
-        
-        console.log(`📦 Найдено товаров: ${snapshot.size}`);
         
         const products = [];
         snapshot.forEach(doc => {
@@ -230,12 +250,16 @@ async function showProducts(categoryId, categoryName) {
         if (products.length === 0) {
             productsDiv.innerHTML = `
                 <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-                <div class="empty">📭 В категории "${escapeHtml(categoryName)}" пока нет товаров</div>
+                <div>🔍 Ищем товары с ID категории: <b>${categoryId}</b></div>
+                <div>📦 Всего товаров в базе: ${allProducts.size}</div>
+                ${allProductsInfo}
+                <div class="empty">❌ Нет товаров с categoryId = "${categoryId}"</div>
             `;
             addCustomOrderButton();
             return;
         }
         
+        // Если товары найдены — показываем их
         productsDiv.innerHTML = `
             <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
             <h2 class="category-title">${escapeHtml(categoryName)}</h2>
@@ -279,12 +303,11 @@ async function showProducts(categoryId, categoryName) {
         console.error('❌ Ошибка:', error);
         productsDiv.innerHTML = `
             <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-            <div class="empty">❌ Ошибка загрузки: ${error.message}</div>
+            <div class="empty">❌ Ошибка: ${error.message}</div>
         `;
         addCustomOrderButton();
     }
 }
-
 // Добавить кнопку "Заказ под заказ"
 function addCustomOrderButton() {
     const productsDiv = document.getElementById('products');
