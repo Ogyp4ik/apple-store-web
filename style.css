@@ -51,7 +51,7 @@ body {
 .category-card {
     background: white;
     border-radius: 20px;
-    padding: 30px 20px;
+    padding: 20px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -65,9 +65,24 @@ body {
     border-color: transparent;
 }
 
-.category-icon {
-    font-size: 56px;
+.category-image {
+    width: 100%;
+    height: 160px;
     margin-bottom: 15px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #f9f9fb;
+}
+
+.category-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.category-card:hover .category-image img {
+    transform: scale(1.05);
 }
 
 .category-card h3 {
@@ -245,7 +260,11 @@ body {
     }
     
     .category-card {
-        padding: 20px;
+        padding: 15px;
+    }
+    
+    .category-image {
+        height: 140px;
     }
     
     .product-card h2 {
