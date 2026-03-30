@@ -34,10 +34,6 @@ const TELEGRAM_TOKEN = "8754493631:AAH9vZvWTS-SOHwk5Y0y7Rbr6klwmgeSgN0";
 const GROUP_ID = "-1003850642883";
 const ADMIN_IDS = ["7441684316", "1317122793", "1015865721"];
 
-// Состояние приложения
-let currentCategoryId = null;
-let currentProducts = [];
-
 // Функция отправки уведомления
 async function sendTelegramNotification(message) {
     try {
@@ -173,6 +169,7 @@ async function showCategories() {
         
         if (categories.length === 0) {
             productsDiv.innerHTML = '<div class="empty">📭 Категории пока не добавлены</div>';
+            addCustomOrderButton();
             return;
         }
         
@@ -183,20 +180,26 @@ async function showCategories() {
             card.className = 'category-card';
             card.style.cursor = 'pointer';
             card.onclick = () => showProducts(category.id, category.name);
+            
+            // Используем фото категории или стандартную иконку
+            const categoryImage = category.image || 'https://via.placeholder.com/300?text=' + encodeURIComponent(category.name);
+            
             card.innerHTML = `
-                <div class="category-icon">📁</div>
+                <div class="category-image">
+                    <img src="${categoryImage}" alt="${escapeHtml(category.name)}" onerror="this.src='https://via.placeholder.com/300?text=${escapeHtml(category.name)}'">
+                </div>
                 <h3>${escapeHtml(category.name)}</h3>
                 <p class="category-count">Нажмите для просмотра</p>
             `;
             productsDiv.appendChild(card);
         });
         
-        // Добавляем кнопку "Заказ под заказ"
         addCustomOrderButton();
         
     } catch (error) {
         console.error('❌ Ошибка:', error);
         productsDiv.innerHTML = `<div class="empty">❌ Ошибка загрузки: ${error.message}</div>`;
+        addCustomOrderButton();
     }
 }
 
@@ -206,16 +209,18 @@ async function showProducts(categoryId, categoryName) {
     if (!productsDiv) return;
     
     productsDiv.innerHTML = `
-        <div class="back-button" onclick="window.showCategories()">
-            ← Назад к категориям
-        </div>
+        <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
         <div class="loading">🔄 Загрузка товаров...</div>
     `;
     
     try {
+        console.log(`Загрузка товаров для категории: ${categoryId}`);
+        
         const snapshot = await db.collection('products')
             .where('categoryId', '==', categoryId)
             .get();
+        
+        console.log(`Найдено товаров: ${snapshot.size}`);
         
         const products = [];
         snapshot.forEach(doc => {
@@ -225,7 +230,7 @@ async function showProducts(categoryId, categoryName) {
         if (products.length === 0) {
             productsDiv.innerHTML = `
                 <div class="back-button" onclick="window.showCategories()">← Назад к категориям</div>
-                <div class="empty">📭 В категории "${categoryName}" пока нет товаров</div>
+                <div class="empty">📭 В категории "${escapeHtml(categoryName)}" пока нет товаров</div>
             `;
             addCustomOrderButton();
             return;
@@ -243,7 +248,7 @@ async function showProducts(categoryId, categoryName) {
             const card = document.createElement('div');
             card.className = 'product-card';
             card.innerHTML = `
-                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300'">
+                <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${escapeHtml(product.name)}" onerror="this.src='https://via.placeholder.com/300'">
                 <h2>${escapeHtml(product.name)}</h2>
                 <p class="description">${escapeHtml(product.description || '')}</p>
                 <div class="specs">
