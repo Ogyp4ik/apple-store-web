@@ -181,7 +181,6 @@ async function showCategories() {
             card.style.cursor = 'pointer';
             card.onclick = () => showProducts(category.id, category.name);
             
-            // Используем фото категории или стандартную иконку
             const categoryImage = category.image || 'https://via.placeholder.com/300?text=' + encodeURIComponent(category.name);
             
             card.innerHTML = `
@@ -214,13 +213,23 @@ async function showProducts(categoryId, categoryName) {
     `;
     
     try {
-        console.log(`Загрузка товаров для категории: ${categoryId}`);
+        console.log(`🔍 Загрузка товаров для категории ID: ${categoryId}, название: ${categoryName}`);
         
+        // Получаем все товары для проверки
+        const allProductsSnapshot = await db.collection('products').get();
+        console.log(`📦 Всего товаров в базе: ${allProductsSnapshot.size}`);
+        
+        allProductsSnapshot.forEach(doc => {
+            const data = doc.data();
+            console.log(`Товар: ${data.name}, categoryId: ${data.categoryId}, тип: ${typeof data.categoryId}`);
+        });
+        
+        // Ищем товары с нужным categoryId
         const snapshot = await db.collection('products')
             .where('categoryId', '==', categoryId)
             .get();
         
-        console.log(`Найдено товаров: ${snapshot.size}`);
+        console.log(`🔍 Найдено товаров для категории ${categoryId}: ${snapshot.size}`);
         
         const products = [];
         snapshot.forEach(doc => {
@@ -261,7 +270,6 @@ async function showProducts(categoryId, categoryName) {
             productsList.appendChild(card);
         });
         
-        // Обработчики кнопок "Купить"
         document.querySelectorAll('.buy-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const productData = {
