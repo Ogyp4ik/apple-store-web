@@ -526,6 +526,7 @@ async function showCategories() {
     }
 }
 
+// ========== ИСПРАВЛЕННАЯ ФУНКЦИЯ showProducts ==========
 async function showProducts(categoryId, categoryName) {
     const app = document.getElementById('app');
     app.innerHTML = `
@@ -536,15 +537,20 @@ async function showProducts(categoryId, categoryName) {
         <div class="loading">Загрузка товаров...</div>
     `;
     try {
-        let snap = await db.collection('products').where('categoryId','==', categoryId).get();
-
-        // fallback: если вдруг categoryId хранится числом
+        // 1. Ищем товары по ID документа категории
+        let snap = await db.collection('products').where('categoryId', '==', categoryId).get();
+        
+        // 2. Если не нашли — ищем по полю id категории
         if (snap.empty) {
-            snap = await db.collection('products').where('categoryId','==', Number(categoryId)).get();
+            const catDoc = await db.collection('categories').doc(categoryId).get();
+            const catData = catDoc.data();
+            if (catData && catData.id) {
+                snap = await db.collection('products').where('categoryId', '==', catData.id).get();
+            }
         }
 
         const products = [];
-        snap.forEach(doc => products.push({id: doc.id, ...doc.data()}));
+        snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
 
         if (!products.length) {
             app.innerHTML = `
