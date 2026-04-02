@@ -15,12 +15,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Telegram уведомления
+// Telegram уведомления (только в группу)
 const TELEGRAM_TOKEN = "8754493631:AAH9vZvWTS-SOHwk5Y0y7Rbr6klwmgeSgN0";
 const GROUP_CHAT_ID = "-1003850642883";
-const ADMIN_IDS = ["7441684316", "1317122793", "1015865721"];
 
-// Пользователь
 let user = null;
 try {
     if (tg.initDataUnsafe?.user) {
@@ -28,13 +26,6 @@ try {
     }
 } catch(e) {}
 
-// DOM элементы
-const appDiv = document.getElementById('app');
-const modal = document.getElementById('customModal');
-
-let currentCategoryId = null;
-
-// Отправка уведомления в группу
 async function sendTelegramNotification(message) {
     if (!GROUP_CHAT_ID) return;
     try {
@@ -46,7 +37,6 @@ async function sendTelegramNotification(message) {
     } catch(e) { console.error(e); }
 }
 
-// Отправка заказа
 async function sendOrder(product, btn) {
     const originalText = btn.textContent;
     btn.textContent = '⏳ Отправка...';
@@ -64,10 +54,8 @@ async function sendOrder(product, btn) {
             type: 'product'
         };
         await db.collection('orders').add(orderData);
-        
-        const message = `🛍 НОВЫЙ ЗАКАЗ!\n\n👤 ${orderData.username}\n📱 ${orderData.productName}\n💾 ${orderData.storage}\n🎨 ${orderData.color}\n💰 ${orderData.price.toLocaleString()} ₽`;
+        const message = `🛍 НОВЫЙ ЗАКАЗ!\n👤 ${orderData.username}\n📱 ${orderData.productName}\n💾 ${orderData.storage}\n🎨 ${orderData.color}\n💰 ${orderData.price.toLocaleString()} ₽`;
         await sendTelegramNotification(message);
-        
         tg.showAlert('✅ Заявка отправлена!');
         btn.textContent = '✅ Отправлено!';
         btn.style.background = '#34c759';
@@ -84,7 +72,6 @@ async function sendOrder(product, btn) {
     }
 }
 
-// Заказ под заказ
 async function sendCustomOrder(comment) {
     try {
         const orderData = {
@@ -99,10 +86,8 @@ async function sendCustomOrder(comment) {
             type: 'custom'
         };
         await db.collection('orders').add(orderData);
-        
-        const message = `📦 ЗАКАЗ ПОД ЗАКАЗ!\n\n👤 ${orderData.username}\n📝 ${comment}`;
+        const message = `📦 ЗАКАЗ ПОД ЗАКАЗ!\n👤 ${orderData.username}\n📝 ${comment}`;
         await sendTelegramNotification(message);
-        
         tg.showAlert('✅ Заявка принята!');
     } catch(e) {
         console.error(e);
@@ -110,20 +95,18 @@ async function sendCustomOrder(comment) {
     }
 }
 
-// Показать категории
 async function showCategories() {
-    appDiv.innerHTML = '<div class="loading-spinner">Загрузка категорий...</div>';
+    const app = document.getElementById('app');
+    app.innerHTML = '<div class="loading">Загрузка категорий...</div>';
     try {
         const snapshot = await db.collection('categories').orderBy('order').get();
         const categories = [];
         snapshot.forEach(doc => categories.push({ id: doc.id, ...doc.data() }));
-        
         if (!categories.length) {
-            appDiv.innerHTML = '<div class="empty">Категории пока не добавлены</div>';
+            app.innerHTML = '<div class="empty">Категории пока не добавлены</div>';
             return;
         }
-        
-        appDiv.innerHTML = `
+        app.innerHTML = `
             <div class="header">
                 <h1>Яблочный</h1>
             </div>
@@ -142,27 +125,25 @@ async function showCategories() {
         });
     } catch(e) {
         console.error(e);
-        appDiv.innerHTML = '<div class="empty">Ошибка загрузки категорий</div>';
+        app.innerHTML = '<div class="empty">Ошибка загрузки категорий</div>';
     }
 }
 
-// Показать товары категории
 async function showProducts(categoryId, categoryName) {
-    currentCategoryId = categoryId;
-    appDiv.innerHTML = `
+    const app = document.getElementById('app');
+    app.innerHTML = `
         <div class="nav-bar">
             <button class="back-btn" onclick="showCategories()">←</button>
             <h2>${categoryName}</h2>
         </div>
-        <div class="loading-spinner">Загрузка товаров...</div>
+        <div class="loading">Загрузка товаров...</div>
     `;
     try {
         const snapshot = await db.collection('products').where('categoryId', '==', categoryId).get();
         const products = [];
         snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
-        
         if (!products.length) {
-            appDiv.innerHTML = `
+            app.innerHTML = `
                 <div class="nav-bar">
                     <button class="back-btn" onclick="showCategories()">←</button>
                     <h2>${categoryName}</h2>
@@ -171,8 +152,7 @@ async function showProducts(categoryId, categoryName) {
             `;
             return;
         }
-        
-        appDiv.innerHTML = `
+        app.innerHTML = `
             <div class="nav-bar">
                 <button class="back-btn" onclick="showCategories()">←</button>
                 <h2>${categoryName}</h2>
@@ -202,11 +182,15 @@ async function showProducts(categoryId, categoryName) {
         });
     } catch(e) {
         console.error(e);
-        appDiv.innerHTML = '<div class="empty">Ошибка загрузки товаров</div>';
+        app.innerHTML = '<div class="empty">Ошибка загрузки товаров</div>';
     }
 }
 
+window.showCategories = showCategories;
+window.showProducts = showProducts;
+
 // Модалка
+const modal = document.getElementById('customModal');
 document.getElementById('customOrderBtn').addEventListener('click', () => modal.classList.add('active'));
 document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('active'));
 document.getElementById('submitCustomBtn').addEventListener('click', async () => {
@@ -220,9 +204,4 @@ document.getElementById('submitCustomBtn').addEventListener('click', async () =>
     document.getElementById('customComment').value = '';
 });
 
-// Глобальные функции
-window.showCategories = showCategories;
-window.showProducts = showProducts;
-
-// Запуск
 showCategories();
