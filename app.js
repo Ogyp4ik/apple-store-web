@@ -1,116 +1,228 @@
 // Telegram WebApp
 const tg = window.Telegram.WebApp;
 tg.expand();
-tg.ready();
 
-// Данные (в реальности подключаешь Firebase)
-const categories = [
-    { id: 'iphone', name: 'iPhone', image: 'https://cdn-icons-png.flaticon.com/512/1791/1791308.png' },
-    { id: 'ipad', name: 'iPad', image: 'https://cdn-icons-png.flaticon.com/512/1791/1791262.png' },
-    { id: 'macbook', name: 'MacBook', image: 'https://cdn-icons-png.flaticon.com/512/1791/1791257.png' }
-];
-
-const products = {
-    iphone: [
-        { id: 1, name: 'iPhone 17 Pro', price: 129900, storage: '256GB', color: 'Natural Titanium', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-pro-model-unselect-gallery-2-202409?wid=512' },
-        { id: 2, name: 'iPhone 17', price: 99900, storage: '128GB', color: 'Black', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-model-unselect-gallery-2-202409?wid=512' }
-    ],
-    ipad: [
-        { id: 3, name: 'iPad Pro 13"', price: 149900, storage: '512GB', color: 'Silver', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-pro-13-select-wifi-spacegray-202410?wid=512' }
-    ],
-    macbook: [
-        { id: 4, name: 'MacBook Pro 14"', price: 199900, storage: '1TB', color: 'Space Gray', image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-spacegray-select-202410?wid=512' }
-    ]
+// Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyCR01An-gdwysrsNfDoPGV0fQ9Zxmk1S4g",
+    authDomain: "yablochniy-e5daf.firebaseapp.com",
+    projectId: "yablochniy-e5daf",
+    storageBucket: "yablochniy-e5daf.firebasestorage.app",
+    messagingSenderId: "909418919751",
+    appId: "1:909418919751:web:cc3975c0e62b5ae4703e62"
 };
 
-let currentCategoryId = null;
-const app = document.getElementById('app');
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Telegram уведомления
+const TELEGRAM_TOKEN = "8754493631:AAH9vZvWTS-SOHwk5Y0y7Rbr6klwmgeSgN0";
+const GROUP_CHAT_ID = "-1003850642883";
+const ADMIN_IDS = ["7441684316", "1317122793", "1015865721"];
+
+// Пользователь
+let user = null;
+try {
+    if (tg.initDataUnsafe?.user) {
+        user = tg.initDataUnsafe.user;
+    }
+} catch(e) {}
+
+// DOM элементы
+const appDiv = document.getElementById('app');
 const modal = document.getElementById('customModal');
 
-// Рендер категорий
-function renderCategories() {
-    app.innerHTML = `
-        <div class="header">
-            <h1>Яблочный</h1>
-        </div>
-        <div class="categories-grid" id="categoriesGrid"></div>
-    `;
-    const grid = document.getElementById('categoriesGrid');
-    categories.forEach(cat => {
-        const card = document.createElement('div');
-        card.className = 'category-card';
-        card.innerHTML = `
-            <div class="category-image"><img src="${cat.image}" alt="${cat.name}"></div>
-            <h3>${cat.name}</h3>
-        `;
-        card.onclick = () => renderProducts(cat.id, cat.name);
-        grid.appendChild(card);
-    });
+let currentCategoryId = null;
+
+// Отправка уведомления в группу
+async function sendTelegramNotification(message) {
+    if (!GROUP_CHAT_ID) return;
+    try {
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: GROUP_CHAT_ID, text: message })
+        });
+    } catch(e) { console.error(e); }
 }
 
-// Рендер товаров категории
-function renderProducts(categoryId, categoryName) {
-    currentCategoryId = categoryId;
-    const items = products[categoryId] || [];
-    if (!items.length) {
-        app.innerHTML = `
-            <div class="nav-bar">
-                <button class="back-btn" onclick="renderCategories()">←</button>
-                <h2>${categoryName}</h2>
-            </div>
-            <div class="empty">В этой категории пока нет товаров</div>
-        `;
-        return;
+// Отправка заказа
+async function sendOrder(product, btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Отправка...';
+    btn.disabled = true;
+
+    try {
+        const orderData = {
+            userId: user?.id || 0,
+            username: user?.username || 'Не указан',
+            productName: product.name,
+            storage: product.storage || '—',
+            color: product.color || '—',
+            price: product.price,
+            date: new Date().toISOString(),
+            type: 'product'
+        };
+        await db.collection('orders').add(orderData);
+        
+        const message = `🛍 НОВЫЙ ЗАКАЗ!\n\n👤 ${orderData.username}\n📱 ${orderData.productName}\n💾 ${orderData.storage}\n🎨 ${orderData.color}\n💰 ${orderData.price.toLocaleString()} ₽`;
+        await sendTelegramNotification(message);
+        
+        tg.showAlert('✅ Заявка отправлена!');
+        btn.textContent = '✅ Отправлено!';
+        btn.style.background = '#34c759';
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+            btn.style.background = '#007aff';
+        }, 2000);
+    } catch(e) {
+        console.error(e);
+        tg.showAlert('❌ Ошибка');
+        btn.textContent = originalText;
+        btn.disabled = false;
     }
-    app.innerHTML = `
+}
+
+// Заказ под заказ
+async function sendCustomOrder(comment) {
+    try {
+        const orderData = {
+            userId: user?.id || 0,
+            username: user?.username || 'Не указан',
+            productName: 'Заказ под заказ',
+            storage: '—',
+            color: '—',
+            price: 0,
+            comment: comment,
+            date: new Date().toISOString(),
+            type: 'custom'
+        };
+        await db.collection('orders').add(orderData);
+        
+        const message = `📦 ЗАКАЗ ПОД ЗАКАЗ!\n\n👤 ${orderData.username}\n📝 ${comment}`;
+        await sendTelegramNotification(message);
+        
+        tg.showAlert('✅ Заявка принята!');
+    } catch(e) {
+        console.error(e);
+        tg.showAlert('❌ Ошибка');
+    }
+}
+
+// Показать категории
+async function showCategories() {
+    appDiv.innerHTML = '<div class="loading-spinner">Загрузка категорий...</div>';
+    try {
+        const snapshot = await db.collection('categories').orderBy('order').get();
+        const categories = [];
+        snapshot.forEach(doc => categories.push({ id: doc.id, ...doc.data() }));
+        
+        if (!categories.length) {
+            appDiv.innerHTML = '<div class="empty">Категории пока не добавлены</div>';
+            return;
+        }
+        
+        appDiv.innerHTML = `
+            <div class="header">
+                <h1>Яблочный</h1>
+            </div>
+            <div class="categories-grid" id="categoriesGrid"></div>
+        `;
+        const grid = document.getElementById('categoriesGrid');
+        categories.forEach(cat => {
+            const card = document.createElement('div');
+            card.className = 'category-card';
+            card.innerHTML = `
+                <div class="category-image"><img src="${cat.image || 'https://placehold.co/200x200?text=🍎'}" alt="${cat.name}"></div>
+                <h3>${cat.name}</h3>
+            `;
+            card.onclick = () => showProducts(cat.id, cat.name);
+            grid.appendChild(card);
+        });
+    } catch(e) {
+        console.error(e);
+        appDiv.innerHTML = '<div class="empty">Ошибка загрузки категорий</div>';
+    }
+}
+
+// Показать товары категории
+async function showProducts(categoryId, categoryName) {
+    currentCategoryId = categoryId;
+    appDiv.innerHTML = `
         <div class="nav-bar">
-            <button class="back-btn" onclick="renderCategories()">←</button>
+            <button class="back-btn" onclick="showCategories()">←</button>
             <h2>${categoryName}</h2>
         </div>
-        <div class="products-list" id="productsList"></div>
+        <div class="loading-spinner">Загрузка товаров...</div>
     `;
-    const list = document.getElementById('productsList');
-    items.forEach(product => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.innerHTML = `
-            <div class="product-image"><img src="${product.image}" alt="${product.name}" onerror="this.src='https://placehold.co/400x300?text=No+Image'"></div>
-            <div class="product-info">
-                <div class="product-title">${product.name}</div>
-                <div class="product-price">${product.price.toLocaleString()} ₽</div>
-                <div class="product-specs">${product.storage ? `Память: ${product.storage} | ` : ''}${product.color ? `Цвет: ${product.color}` : ''}</div>
-                <button class="buy-btn" data-product='${JSON.stringify(product)}'>Купить</button>
+    try {
+        const snapshot = await db.collection('products').where('categoryId', '==', categoryId).get();
+        const products = [];
+        snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+        
+        if (!products.length) {
+            appDiv.innerHTML = `
+                <div class="nav-bar">
+                    <button class="back-btn" onclick="showCategories()">←</button>
+                    <h2>${categoryName}</h2>
+                </div>
+                <div class="empty">В этой категории пока нет товаров</div>
+            `;
+            return;
+        }
+        
+        appDiv.innerHTML = `
+            <div class="nav-bar">
+                <button class="back-btn" onclick="showCategories()">←</button>
+                <h2>${categoryName}</h2>
             </div>
+            <div class="products-list" id="productsList"></div>
         `;
-        list.appendChild(card);
-    });
-    document.querySelectorAll('.buy-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const product = JSON.parse(btn.dataset.product);
-            tg.showAlert(`✅ Заявка отправлена!\n\n${product.name}\n${product.storage || ''} ${product.color || ''}\n${product.price.toLocaleString()} ₽`);
-            console.log('Заказ:', product);
+        const list = document.getElementById('productsList');
+        products.forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <div class="product-image"><img src="${product.image || 'https://placehold.co/400x300?text=No+Image'}" alt="${product.name}"></div>
+                <div class="product-info">
+                    <div class="product-title">${product.name}</div>
+                    <div class="product-price">${(product.price || 0).toLocaleString()} ₽</div>
+                    <div class="product-specs">${product.storage && product.storage !== '—' ? `Память: ${product.storage} | ` : ''}${product.color && product.color !== '—' ? `Цвет: ${product.color}` : ''}</div>
+                    <button class="buy-btn" data-product='${JSON.stringify(product)}'>Купить</button>
+                </div>
+            `;
+            list.appendChild(card);
         });
-    });
+        document.querySelectorAll('.buy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const product = JSON.parse(btn.dataset.product);
+                sendOrder(product, btn);
+            });
+        });
+    } catch(e) {
+        console.error(e);
+        appDiv.innerHTML = '<div class="empty">Ошибка загрузки товаров</div>';
+    }
 }
 
-// Модалка для заказа под заказ
-document.getElementById('customOrderBtn').addEventListener('click', () => {
-    modal.classList.add('active');
-});
-document.getElementById('closeModalBtn').addEventListener('click', () => {
-    modal.classList.remove('active');
-});
-document.getElementById('submitCustomBtn').addEventListener('click', () => {
-    const comment = document.getElementById('customComment').value;
-    if (comment.trim()) {
-        tg.showAlert(`✅ Заявка принята!\nВаш запрос: ${comment.substring(0, 100)}`);
-        console.log('Заказ под заказ:', comment);
-    } else {
-        tg.showAlert('Пожалуйста, опишите, что вы ищете');
+// Модалка
+document.getElementById('customOrderBtn').addEventListener('click', () => modal.classList.add('active'));
+document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('active'));
+document.getElementById('submitCustomBtn').addEventListener('click', async () => {
+    const comment = document.getElementById('customComment').value.trim();
+    if (!comment) {
+        tg.showAlert('Напишите, что вы ищете');
+        return;
     }
+    await sendCustomOrder(comment);
     modal.classList.remove('active');
     document.getElementById('customComment').value = '';
 });
 
-// Старт
-renderCategories();
+// Глобальные функции
+window.showCategories = showCategories;
+window.showProducts = showProducts;
+
+// Запуск
+showCategories();
