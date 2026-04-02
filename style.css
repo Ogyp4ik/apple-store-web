@@ -1,3 +1,32 @@
+/* ========================================
+   Telegram Mini App — Премиальный дизайн
+   Стиль из Figma Make (шрифты, цвета, радиусы)
+   ======================================== */
+
+/* ----- Базовые переменные ----- */
+:root {
+    --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --bg: #ffffff;
+    --text: #1d1d1f;
+    --card-bg: #f5f5f7;
+    --card-border: rgba(0, 0, 0, 0.05);
+    --accent: #007aff;
+    --accent-dark: #0055cc;
+    --hint: #6c6c70;
+    --radius-card: 20px;
+    --radius-btn: 14px;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}
+
+.dark {
+    --bg: #000000;
+    --text: #ffffff;
+    --card-bg: #1c1c1e;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --hint: #8e8e93;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -5,10 +34,10 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: var(--tg-theme-bg-color, #ffffff);
-    color: var(--tg-theme-text-color, #1d1d1f);
-    transition: background 0.3s ease, color 0.3s ease;
+    font-family: var(--font-family);
+    background: var(--tg-theme-bg-color, var(--bg));
+    color: var(--tg-theme-text-color, var(--text));
+    transition: background 0.3s, color 0.3s;
     padding-bottom: 90px;
 }
 
@@ -18,21 +47,21 @@ body {
     padding: 20px 16px;
 }
 
-/* Шапка */
+/* ----- Шапка ----- */
 .header {
     margin-bottom: 28px;
 }
 .header h1 {
-    font-size: 32px;
+    font-size: 34px;
     font-weight: 700;
     letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #007aff 0%, #0055cc 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
 }
 
-/* Навигация */
+/* ----- Навигация ----- */
 .nav-bar {
     display: flex;
     align-items: center;
@@ -44,32 +73,33 @@ body {
     border: none;
     font-size: 28px;
     cursor: pointer;
-    color: var(--tg-theme-text-color, #1d1d1f);
+    color: var(--tg-theme-text-color, var(--text));
     padding: 8px 0;
     transition: opacity 0.2s;
 }
-.back-btn:active { opacity: 0.6; }
+.back-btn:active {
+    opacity: 0.6;
+}
 .nav-bar h2 {
     font-size: 24px;
     font-weight: 600;
     letter-spacing: -0.3px;
 }
 
-/* Сетка категорий */
+/* ----- Категории (сетка 2 колонки) ----- */
 .categories-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
-    margin-bottom: 24px;
 }
 .category-card {
-    background: var(--tg-theme-secondary-bg-color, #f5f5f7);
-    border-radius: 20px;
+    background: var(--tg-theme-secondary-bg-color, var(--card-bg));
+    border-radius: var(--radius-card);
     padding: 20px 12px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    border: 1px solid rgba(0,0,0,0.04);
+    transition: var(--transition);
+    border: 1px solid var(--card-border);
 }
 .category-card:active {
     transform: scale(0.97);
@@ -95,18 +125,18 @@ body {
     font-weight: 500;
 }
 
-/* Список товаров */
+/* ----- Товары (вертикальный список) ----- */
 .products-list {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
 .product-card {
-    background: var(--tg-theme-secondary-bg-color, #f5f5f7);
-    border-radius: 20px;
+    background: var(--tg-theme-secondary-bg-color, var(--card-bg));
+    border-radius: var(--radius-card);
     overflow: hidden;
-    transition: transform 0.2s;
-    border: 1px solid rgba(0,0,0,0.04);
+    transition: var(--transition);
+    border: 1px solid var(--card-border);
 }
 .product-card:active {
     transform: scale(0.99);
@@ -135,31 +165,31 @@ body {
 .product-price {
     font-size: 22px;
     font-weight: 700;
-    color: #007aff;
+    color: var(--accent);
     margin-bottom: 8px;
 }
 .product-specs {
     font-size: 14px;
-    color: var(--tg-theme-hint-color, #6c6c70);
+    color: var(--tg-theme-hint-color, var(--hint));
     margin-bottom: 16px;
 }
 .buy-btn {
     width: 100%;
-    background: #007aff;
+    background: var(--accent);
     color: white;
     border: none;
     padding: 14px;
-    border-radius: 14px;
+    border-radius: var(--radius-btn);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
 }
 .buy-btn:active {
-    background: #0055cc;
+    background: var(--accent-dark);
 }
 
-/* Кнопка "Заказать под заказ" */
+/* ----- Кнопка "Заказать под заказ" (градиентная, приклеена снизу) ----- */
 .custom-order-btn {
     position: fixed;
     bottom: 20px;
@@ -167,7 +197,7 @@ body {
     transform: translateX(-50%);
     width: calc(100% - 32px);
     max-width: 568px;
-    background: linear-gradient(135deg, #007aff, #0055cc);
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
     color: white;
     border: none;
     padding: 16px;
@@ -184,14 +214,14 @@ body {
     opacity: 0.9;
 }
 
-/* Модалка */
+/* ----- Модальное окно (для заказа под заказ) ----- */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
@@ -206,14 +236,16 @@ body {
     opacity: 1;
 }
 .modal-content {
-    background: var(--tg-theme-bg-color, white);
+    background: var(--tg-theme-bg-color, #ffffff);
     border-radius: 28px;
     padding: 24px;
     width: 90%;
     max-width: 340px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 .modal-content h3 {
     font-size: 22px;
+    font-weight: 600;
     margin-bottom: 16px;
 }
 .modal-content textarea {
@@ -229,7 +261,7 @@ body {
 }
 .modal-btn {
     width: 100%;
-    background: #007aff;
+    background: var(--accent);
     color: white;
     border: none;
     padding: 14px;
@@ -240,17 +272,17 @@ body {
 .close-modal {
     margin-top: 12px;
     background: none;
-    color: #007aff;
+    color: var(--accent);
 }
 
-/* Состояния загрузки */
+/* ----- Состояния загрузки и ошибок ----- */
 .loading, .empty {
     text-align: center;
     padding: 60px 20px;
-    color: var(--tg-theme-hint-color, #8e8e93);
+    color: var(--tg-theme-hint-color, var(--hint));
 }
 
-/* Тёмная тема */
+/* ----- Адаптация под тёмную тему Telegram ----- */
 @media (prefers-color-scheme: dark) {
     .category-image, .product-image {
         background: #2c2c2e;
