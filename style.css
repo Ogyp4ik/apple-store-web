@@ -8,11 +8,10 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
     background: var(--tg-theme-bg-color, #ffffff);
     color: var(--tg-theme-text-color, #1d1d1f);
-    transition: background 0.3s ease, color 0.3s ease;
-    padding-bottom: 80px;
+    transition: background 0.3s ease;
+    padding-bottom: 90px;
 }
 
-/* Контейнер */
 .container {
     max-width: 600px;
     margin: 0 auto;
@@ -21,10 +20,10 @@ body {
 
 /* Шапка */
 .header {
-    margin-bottom: 24px;
+    margin-bottom: 28px;
 }
 .header h1 {
-    font-size: 32px;
+    font-size: 34px;
     font-weight: 700;
     background: linear-gradient(135deg, #007aff 0%, #0055cc 100%);
     -webkit-background-clip: text;
@@ -38,7 +37,7 @@ body {
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 .back-btn {
     background: none;
@@ -56,12 +55,11 @@ body {
     letter-spacing: -0.3px;
 }
 
-/* Сетка категорий */
+/* Категории (сетка 2 колонки) */
 .categories-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
-    margin-bottom: 24px;
 }
 .category-card {
     background: var(--tg-theme-secondary-bg-color, #f5f5f7);
@@ -69,7 +67,7 @@ body {
     padding: 20px 12px;
     text-align: center;
     cursor: pointer;
-    transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1), box-shadow 0.2s;
+    transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 .category-card:active {
@@ -84,7 +82,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 40px;
     overflow: hidden;
 }
 .category-image img {
@@ -97,12 +94,11 @@ body {
     font-weight: 500;
 }
 
-/* Список товаров */
+/* Товары (вертикальный список) */
 .products-list {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    margin-bottom: 24px;
 }
 .product-card {
     background: var(--tg-theme-secondary-bg-color, #f5f5f7);
@@ -120,7 +116,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
 }
 .product-image img {
     width: 100%;
@@ -133,7 +128,7 @@ body {
 .product-title {
     font-size: 18px;
     font-weight: 600;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 .product-price {
     font-size: 22px;
@@ -156,14 +151,13 @@ body {
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
+    transition: background 0.2s;
 }
 .buy-btn:active {
     background: #0055cc;
-    transform: scale(0.98);
 }
 
-/* Градиентная кнопка */
+/* Градиентная кнопка внизу */
 .gradient-btn {
     position: fixed;
     bottom: 20px;
@@ -180,7 +174,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(0, 122, 255, 0.4);
-    transition: opacity 0.2s, transform 0.1s;
+    transition: all 0.2s;
     z-index: 100;
 }
 .gradient-btn:active {
@@ -189,7 +183,7 @@ body {
 }
 
 /* Состояния */
-.loader {
+.loading-spinner {
     text-align: center;
     padding: 40px;
     color: var(--tg-theme-hint-color, #8e8e93);
@@ -199,22 +193,8 @@ body {
     padding: 60px 20px;
     color: var(--tg-theme-hint-color, #8e8e93);
 }
-.error {
-    text-align: center;
-    padding: 40px;
-    color: #ff3b30;
-}
-.retry-btn {
-    background: none;
-    border: 1px solid #007aff;
-    color: #007aff;
-    padding: 10px 20px;
-    border-radius: 30px;
-    margin-top: 16px;
-    cursor: pointer;
-}
 
-/* Модальное окно */
+/* Модалка */
 .modal {
     position: fixed;
     top: 0;
@@ -241,7 +221,6 @@ body {
     padding: 24px;
     width: 90%;
     max-width: 340px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
 .modal-content h3 {
     font-size: 22px;
@@ -256,7 +235,6 @@ body {
     font-family: inherit;
     font-size: 15px;
     margin-bottom: 20px;
-    resize: vertical;
 }
 .modal-btn {
     width: 100%;
