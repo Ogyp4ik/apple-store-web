@@ -496,7 +496,10 @@ async function showCategories() {
     try {
         const snap = await db.collection('categories').orderBy('order').get();
         const cats = [];
-        snap.forEach(doc => cats.push({id: doc.id, ...doc.data()}));
+        snap.forEach(doc => {
+            console.log('📁 Категория:', doc.data().name, 'ID документа:', doc.id);
+            cats.push({ id: doc.id, ...doc.data() });
+        });
 
         if (!cats.length) {
             app.innerHTML = '<div class="empty">Категории пока не добавлены</div>';
@@ -537,13 +540,29 @@ async function showProducts(categoryId, categoryName) {
         <div class="loading">Загрузка товаров...</div>
     `;
     try {
-        // Получаем документ категории, чтобы узнать её поле "id"
-        const catDoc = await db.collection('categories').doc(categoryId).get();
-        const catData = catDoc.data();
-        const categoryIdFromField = catData.id; // например, "imac__"
+        console.log('🔍 showProducts вызвана с categoryId =', categoryId);
         
-        // Ищем товары, у которых categoryId равен полю id категории
+        // Проверяем, существует ли документ категории
+        const catDoc = await db.collection('categories').doc(categoryId).get();
+        if (!catDoc.exists) {
+            console.error('❌ Категория с ID', categoryId, 'не найдена в Firebase');
+            app.innerHTML = `
+                <div class="nav-bar">
+                    <button class="back-btn" onclick="showCategories()">←</button>
+                    <h2>${categoryName}</h2>
+                </div>
+                <div class="empty">Ошибка: категория не найдена</div>
+            `;
+            return;
+        }
+        
+        const catData = catDoc.data();
+        const categoryIdFromField = catData.id;
+        console.log('🏷 Категория:', catData.name, 'поле id =', categoryIdFromField);
+        
+        // Ищем товары
         const snap = await db.collection('products').where('categoryId', '==', categoryIdFromField).get();
+        console.log('✅ Найдено товаров:', snap.size);
         
         const products = [];
         snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
@@ -600,7 +619,7 @@ async function showProducts(categoryId, categoryName) {
                 <button class="back-btn" onclick="showCategories()">←</button>
                 <h2>${categoryName}</h2>
             </div>
-            <div class="empty">Ошибка загрузки товаров</div>
+            <div class="empty">Ошибка загрузки товаров: ${e.message}</div>
         `;
     }
 }
