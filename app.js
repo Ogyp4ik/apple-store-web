@@ -39,7 +39,7 @@ async function sendTelegramNotification(message) {
 
 async function sendOrder(product, btn) {
     const originalText = btn.textContent;
-    btn.textContent = '⏳ Отправка...';
+    btn.textContent = 'Отправка...';
     btn.disabled = true;
 
     try {
@@ -62,7 +62,7 @@ async function sendOrder(product, btn) {
         setTimeout(() => {
             btn.textContent = originalText;
             btn.disabled = false;
-            btn.style.background = '#007aff';
+            btn.style.background = '';
         }, 2000);
     } catch(e) {
         console.error(e);
@@ -95,42 +95,62 @@ async function sendCustomOrder(comment) {
     }
 }
 
+// ----------------------------------------------------------------
+// ВАЖНО: #app — это обёртка со стилями (padding, max-width).
+// Мы НЕ перезаписываем его innerHTML напрямую, а рендерим внутрь.
+// Модалка и кнопка "Заказать" живут вне #app — не трогаем.
+// ----------------------------------------------------------------
+
+function getApp() {
+    return document.getElementById('app');
+}
+
 async function showCategories() {
-    const app = document.getElementById('app');
+    const app = getApp();
     app.innerHTML = '<div class="loading">Загрузка категорий...</div>';
+
     try {
         const snapshot = await db.collection('categories').orderBy('order').get();
         const categories = [];
         snapshot.forEach(doc => categories.push({ id: doc.id, ...doc.data() }));
+
         if (!categories.length) {
             app.innerHTML = '<div class="empty">Категории пока не добавлены</div>';
             return;
         }
+
+        // Строим шапку + сетку внутри #app (который уже имеет нужный padding/max-width)
         app.innerHTML = `
             <div class="header">
                 <h1>Яблочный</h1>
             </div>
             <div class="categories-grid" id="categoriesGrid"></div>
         `;
+
         const grid = document.getElementById('categoriesGrid');
         categories.forEach(cat => {
             const card = document.createElement('div');
             card.className = 'category-card';
             card.innerHTML = `
-                <div class="category-image"><img src="${cat.image || 'https://placehold.co/200x200?text=🍎'}" alt="${cat.name}"></div>
+                <div class="category-image">
+                    <img src="${cat.image || 'https://placehold.co/200x200?text=?'}" alt="${cat.name}" loading="lazy">
+                </div>
                 <h3>${cat.name}</h3>
             `;
             card.onclick = () => showProducts(cat.id, cat.name);
             grid.appendChild(card);
         });
+
     } catch(e) {
-        console.error(e);
+        console.error('showCategories error:', e);
         app.innerHTML = '<div class="empty">Ошибка загрузки категорий</div>';
     }
 }
 
 async function showProducts(categoryId, categoryName) {
-    const app = document.getElementById('app');
+    const app = getApp();
+
+    // Сразу показываем nav + спиннер
     app.innerHTML = `
         <div class="nav-bar">
             <button class="back-btn" onclick="showCategories()">←</button>
@@ -138,10 +158,27 @@ async function showProducts(categoryId, categoryName) {
         </div>
         <div class="loading">Загрузка товаров...</div>
     `;
+
     try {
-        const snapshot = await db.collection('products').where('categoryId', '==', categoryId).get();
+        // Запрос товаров по categoryId (строка — doc.id категории)
+        const snapshot = await db.collection('products')
+            .where('categoryId', '==', categoryId)
+            .get();
+
         const products = [];
         snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+
+        console.log(`[showProducts] categoryId="${categoryId}", найдено товаров: ${products.length}`);
+
+        if (!products.length) {
+            // Пробуем fallback: возможно categoryId хранится как число
+            const snapshotNum = await db.collection('products')
+                .where('categoryId', '==', Number(categoryId))
+                .get();
+            snapshotNum.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+            console.log(`[showProducts] fallback (number), найдено: ${snapshotNum.size}`);
+        }
+
         if (!products.length) {
             app.innerHTML = `
                 <div class="nav-bar">
@@ -152,6 +189,7 @@ async function showProducts(categoryId, categoryName) {
             `;
             return;
         }
+
         app.innerHTML = `
             <div class="nav-bar">
                 <button class="back-btn" onclick="showCategories()">←</button>
@@ -159,40 +197,63 @@ async function showProducts(categoryId, categoryName) {
             </div>
             <div class="products-list" id="productsList"></div>
         `;
+
         const list = document.getElementById('productsList');
+
         products.forEach(product => {
+            const specs = [
+                product.storage && product.storage !== '—' ? `Память: ${product.storage}` : '',
+                product.color   && product.color   !== '—' ? `Цвет: ${product.color}`   : ''
+            ].filter(Boolean).join(' · ');
+
             const card = document.createElement('div');
             card.className = 'product-card';
             card.innerHTML = `
-                <div class="product-image"><img src="${product.image || 'https://placehold.co/400x300?text=No+Image'}" alt="${product.name}"></div>
+                <div class="product-image">
+                    <img src="${product.image || 'https://placehold.co/400x300?text=No+Image'}" alt="${product.name}" loading="lazy">
+                </div>
                 <div class="product-info">
                     <div class="product-title">${product.name}</div>
                     <div class="product-price">${(product.price || 0).toLocaleString()} ₽</div>
-                    <div class="product-specs">${product.storage && product.storage !== '—' ? `Память: ${product.storage} | ` : ''}${product.color && product.color !== '—' ? `Цвет: ${product.color}` : ''}</div>
-                    <button class="buy-btn" data-product='${JSON.stringify(product)}'>Купить</button>
+                    ${specs ? `<div class="product-specs">${specs}</div>` : ''}
+                    <button class="buy-btn" data-product='${JSON.stringify(product).replace(/'/g, "&#39;")}'>Купить</button>
                 </div>
             `;
             list.appendChild(card);
         });
+
+        // Вешаем обработчики на кнопки "Купить"
         document.querySelectorAll('.buy-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const product = JSON.parse(btn.dataset.product);
                 sendOrder(product, btn);
             });
         });
+
     } catch(e) {
-        console.error(e);
-        app.innerHTML = '<div class="empty">Ошибка загрузки товаров</div>';
+        console.error('showProducts error:', e);
+        app.innerHTML = `
+            <div class="nav-bar">
+                <button class="back-btn" onclick="showCategories()">←</button>
+                <h2>${categoryName}</h2>
+            </div>
+            <div class="empty">Ошибка загрузки товаров</div>
+        `;
     }
 }
 
 window.showCategories = showCategories;
 window.showProducts = showProducts;
 
-// Модалка
+// ---- Модалка ----
 const modal = document.getElementById('customModal');
-document.getElementById('customOrderBtn').addEventListener('click', () => modal.classList.add('active'));
-document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('active'));
+
+document.getElementById('customOrderBtn').addEventListener('click', () => {
+    modal.classList.add('active');
+});
+document.getElementById('closeModalBtn').addEventListener('click', () => {
+    modal.classList.remove('active');
+});
 document.getElementById('submitCustomBtn').addEventListener('click', async () => {
     const comment = document.getElementById('customComment').value.trim();
     if (!comment) {
@@ -204,4 +265,5 @@ document.getElementById('submitCustomBtn').addEventListener('click', async () =>
     document.getElementById('customComment').value = '';
 });
 
+// Старт
 showCategories();
