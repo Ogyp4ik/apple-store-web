@@ -1,240 +1,608 @@
-* {
+/* ============================================================
+   Яблочный — Telegram Mini App
+   Premium Apple Store Design System v2.0
+   ============================================================ */
+
+/* ---- CSS Variables (Light + Telegram + Dark) ---- */
+:root {
+    --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+    --bg:              #f2f2f7;
+    --bg-card:         #ffffff;
+    --bg-secondary:    #f2f2f7;
+    --bg-input:        #f2f2f7;
+    --text:            #1d1d1f;
+    --text-secondary:  #6c6c70;
+    --text-tertiary:   #aeaeb2;
+    --separator:       rgba(60, 60, 67, 0.1);
+
+    --accent:          #007aff;
+    --accent-2:        #0055cc;
+    --accent-glow:     rgba(0, 122, 255, 0.28);
+
+    --green:           #34c759;
+    --red:             #ff3b30;
+
+    --radius-sm:       12px;
+    --radius-md:       18px;
+    --radius-lg:       24px;
+    --radius-pill:     100px;
+
+    --shadow-card:     0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-btn:      0 4px 18px rgba(0, 122, 255, 0.38);
+    --shadow-modal:    0 24px 60px rgba(0,0,0,0.18);
+
+    --transition-fast: 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --transition-med:  0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --transition-spring: 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* ---- Apply Telegram theme variables ---- */
+body {
+    --bg:           var(--tg-theme-bg-color,          #f2f2f7);
+    --bg-card:      var(--tg-theme-secondary-bg-color, #ffffff);
+    --bg-secondary: var(--tg-theme-secondary-bg-color, #f2f2f7);
+    --text:         var(--tg-theme-text-color,         #1d1d1f);
+    --text-secondary: var(--tg-theme-hint-color,       #6c6c70);
+    --accent:       var(--tg-theme-button-color,       #007aff);
+}
+
+/* ---- Dark Theme Override ---- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg:             #000000;
+        --bg-card:        #1c1c1e;
+        --bg-secondary:   #2c2c2e;
+        --bg-input:       #1c1c1e;
+        --text:           #ffffff;
+        --text-secondary: #8e8e93;
+        --text-tertiary:  #48484a;
+        --separator:      rgba(255,255,255,0.08);
+        --shadow-card:    0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.25);
+        --shadow-modal:   0 24px 60px rgba(0,0,0,0.5);
+    }
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: var(--tg-theme-bg-color, #ffffff);
-    color: var(--tg-theme-text-color, #1d1d1f);
-    padding-bottom: 90px;
+    font-family: var(--font);
+    background-color: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 96px;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
+img {
+    display: block;
+    max-width: 100%;
+}
+
+button {
+    font-family: var(--font);
+    cursor: pointer;
+    border: none;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+textarea {
+    font-family: var(--font);
+    -webkit-appearance: none;
+}
+
+/* ============================================================
+   CONTAINER
+   ============================================================ */
 .container {
     max-width: 600px;
     margin: 0 auto;
-    padding: 20px 16px;
+    padding: 20px 16px 8px;
 }
 
-/* Шапка */
-.header {
-    margin-bottom: 28px;
-}
-.header h1 {
-    font-size: 32px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #007aff, #0055cc);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
-/* Навигация */
-.nav-bar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-}
-.back-btn {
-    background: none;
-    border: none;
-    font-size: 28px;
-    cursor: pointer;
-    color: var(--tg-theme-text-color, #1d1d1f);
-}
-.nav-bar h2 {
-    font-size: 24px;
-    font-weight: 600;
-}
-
-/* Категории (сетка) */
-.categories-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-}
-.category-card {
-    background: var(--tg-theme-secondary-bg-color, #f5f5f7);
-    border-radius: 20px;
-    padding: 20px 12px;
-    text-align: center;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-.category-card:active {
-    transform: scale(0.97);
-}
-.category-image {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 12px;
-    background: #e8e8ed;
-    border-radius: 40px;
+/* ============================================================
+   LOADING STATE
+   ============================================================ */
+.loading {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    padding: 80px 20px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 500;
 }
+
+.loading::before {
+    content: '';
+    width: 32px;
+    height: 32px;
+    border: 2.5px solid var(--separator);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+.loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 2.5px solid var(--separator);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+    margin: 80px auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty {
+    text-align: center;
+    padding: 70px 24px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 450;
+    line-height: 1.5;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header {
+    padding: 8px 0 28px;
+}
+
+.header h1 {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+    color: var(--text);
+    line-height: 1.1;
+}
+
+.header h1 span {
+    display: inline-block;
+    background: linear-gradient(135deg, #007aff 0%, #5ac8fa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* ============================================================
+   NAV BAR
+   ============================================================ */
+.nav-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--bg-card);
+    border: none;
+    border-radius: 50%;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--accent);
+    cursor: pointer;
+    box-shadow: var(--shadow-card);
+    transition: transform var(--transition-fast), opacity var(--transition-fast);
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.back-btn:active {
+    transform: scale(0.9);
+    opacity: 0.75;
+}
+
+.nav-bar h2 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ============================================================
+   CATEGORIES GRID
+   ============================================================ */
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.category-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 20px 14px 18px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--separator);
+    transition: transform var(--transition-spring), box-shadow var(--transition-med);
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.category-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.category-card:active {
+    transform: scale(0.96);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.category-card:active::after {
+    opacity: 0.04;
+}
+
+.category-image {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
 .category-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
+
 .category-card h3 {
-    font-size: 17px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    color: var(--text);
+    line-height: 1.3;
 }
 
-/* Товары (список) */
+/* ============================================================
+   PRODUCTS LIST
+   ============================================================ */
 .products-list {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
+
 .product-card {
-    background: var(--tg-theme-secondary-bg-color, #f5f5f7);
-    border-radius: 20px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
     overflow: hidden;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--separator);
+    transition: transform var(--transition-spring), box-shadow var(--transition-med);
+    user-select: none;
+    -webkit-user-select: none;
 }
+
+.product-card:active {
+    transform: scale(0.985);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
 .product-image {
     width: 100%;
-    height: 220px;
-    background: #e8e8ed;
+    aspect-ratio: 16 / 10;
+    background: var(--bg-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
+
 .product-image img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-}
-.product-info {
-    padding: 16px;
-}
-.product-title {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-.product-price {
-    font-size: 22px;
-    font-weight: 700;
-    color: #007aff;
-    margin: 8px 0;
-}
-.product-specs {
-    font-size: 14px;
-    color: #6c6c70;
-    margin-bottom: 16px;
-}
-.buy-btn {
-    width: 100%;
-    background: #007aff;
-    color: white;
-    border: none;
-    padding: 14px;
-    border-radius: 14px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-}
-.buy-btn:active {
-    background: #0055cc;
+    padding: 8px;
 }
 
-/* Кнопка "Заказать под заказ" */
+.product-info {
+    padding: 18px 18px 20px;
+}
+
+.product-title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+.product-price {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+    margin-bottom: 6px;
+}
+
+.product-specs {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+    line-height: 1.5;
+    letter-spacing: 0;
+}
+
+/* ---- Buy Button ---- */
+.buy-btn {
+    display: block;
+    width: 100%;
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    padding: 14px 20px;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    cursor: pointer;
+    transition: background var(--transition-fast), transform var(--transition-spring), opacity var(--transition-fast);
+    -webkit-appearance: none;
+}
+
+.buy-btn:active {
+    transform: scale(0.97);
+    background: var(--accent-2, #0055cc);
+}
+
+.buy-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+    transform: none;
+}
+
+/* ============================================================
+   FIXED BOTTOM BUTTON — "Заказать под заказ"
+   Both .gradient-btn (HTML) and .custom-order-btn (legacy) work
+   ============================================================ */
+.gradient-btn,
 .custom-order-btn {
     position: fixed;
-    bottom: 20px;
+    bottom: env(safe-area-inset-bottom, 20px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 32px);
     max-width: 568px;
-    background: linear-gradient(135deg, #007aff, #0055cc);
-    color: white;
+
+    background: linear-gradient(135deg, #007aff 0%, #0055cc 100%);
+    color: #ffffff;
     border: none;
-    padding: 16px;
-    border-radius: 32px;
+    padding: 16px 24px;
+    border-radius: var(--radius-pill);
     font-size: 17px;
     font-weight: 600;
+    letter-spacing: -0.2px;
     cursor: pointer;
+    box-shadow: var(--shadow-btn);
     z-index: 100;
-}
-.custom-order-btn:active {
-    transform: translateX(-50%) scale(0.97);
+    transition: transform var(--transition-spring), box-shadow var(--transition-med), opacity var(--transition-fast);
+    white-space: nowrap;
+    -webkit-appearance: none;
 }
 
-/* Модальное окно */
+.gradient-btn:active,
+.custom-order-btn:active {
+    transform: translateX(-50%) scale(0.97);
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
+    opacity: 0.92;
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
 .modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(8px);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
     z-index: 200;
     visibility: hidden;
     opacity: 0;
-    transition: 0.2s;
+    transition: opacity var(--transition-med), visibility var(--transition-med);
+    padding: 0 0 env(safe-area-inset-bottom, 0px);
 }
+
 .modal.active {
     visibility: visible;
     opacity: 1;
 }
+
+.modal.active .modal-content {
+    transform: translateY(0);
+}
+
 .modal-content {
-    background: var(--tg-theme-bg-color, white);
-    border-radius: 28px;
-    padding: 24px;
-    width: 90%;
-    max-width: 340px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 10px 24px 32px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: var(--shadow-modal);
+    transform: translateY(60px);
+    transition: transform var(--transition-spring);
 }
+
+/* Drag handle */
+.modal-content::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--separator);
+    border-radius: var(--radius-pill);
+    margin: 0 auto 22px;
+}
+
 .modal-content h3 {
-    font-size: 22px;
-    margin-bottom: 16px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text);
+    margin-bottom: 18px;
 }
+
 .modal-content textarea {
     width: 100%;
-    padding: 12px;
-    border-radius: 14px;
-    border: 1px solid #d2d2d7;
-    background: var(--tg-theme-secondary-bg-color, #f5f5f7);
-    font-family: inherit;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--separator);
+    background: var(--bg-secondary);
+    color: var(--text);
     font-size: 15px;
-    margin-bottom: 20px;
-    resize: vertical;
+    font-weight: 400;
+    line-height: 1.5;
+    resize: none;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color var(--transition-fast);
+    -webkit-appearance: none;
+    min-height: 100px;
 }
+
+.modal-content textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+.modal-content textarea:focus {
+    border-color: var(--accent);
+}
+
+/* ---- Modal buttons ---- */
 .modal-btn {
+    display: block;
     width: 100%;
-    background: #007aff;
-    color: white;
-    border: none;
-    padding: 14px;
-    border-radius: 30px;
+    padding: 15px 20px;
+    border-radius: var(--radius-pill);
+    font-size: 16px;
     font-weight: 600;
-    cursor: pointer;
-}
-.close-modal {
-    margin-top: 12px;
-    background: none;
-    color: #007aff;
-}
-
-/* Состояния */
-.loading, .empty {
+    letter-spacing: -0.1px;
     text-align: center;
-    padding: 60px 20px;
-    color: #8e8e93;
+    cursor: pointer;
+    border: none;
+    transition: transform var(--transition-spring), opacity var(--transition-fast);
+    -webkit-appearance: none;
 }
 
-/* Тёмная тема */
-@media (prefers-color-scheme: dark) {
-    .category-image, .product-image {
-        background: #2c2c2e;
+.modal-btn:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+}
+
+/* First .modal-btn = Submit (blue) */
+#submitCustomBtn {
+    background: linear-gradient(135deg, #007aff, #0055cc);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+}
+
+/* Close button */
+.close-modal {
+    background: var(--bg-secondary) !important;
+    color: var(--accent) !important;
+    box-shadow: none !important;
+    margin-top: 10px;
+}
+
+/* ============================================================
+   ANIMATIONS — stagger on load
+   ============================================================ */
+.category-card,
+.product-card {
+    animation: fadeUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.categories-grid .category-card:nth-child(1) { animation-delay: 0.04s; }
+.categories-grid .category-card:nth-child(2) { animation-delay: 0.08s; }
+.categories-grid .category-card:nth-child(3) { animation-delay: 0.12s; }
+.categories-grid .category-card:nth-child(4) { animation-delay: 0.16s; }
+.categories-grid .category-card:nth-child(5) { animation-delay: 0.20s; }
+.categories-grid .category-card:nth-child(6) { animation-delay: 0.24s; }
+
+.products-list .product-card:nth-child(1) { animation-delay: 0.04s; }
+.products-list .product-card:nth-child(2) { animation-delay: 0.10s; }
+.products-list .product-card:nth-child(3) { animation-delay: 0.16s; }
+.products-list .product-card:nth-child(4) { animation-delay: 0.22s; }
+.products-list .product-card:nth-child(5) { animation-delay: 0.28s; }
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
     }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================
+   SCROLLBAR (subtle on desktop)
+   ============================================================ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: var(--separator);
+    border-radius: 4px;
 }
