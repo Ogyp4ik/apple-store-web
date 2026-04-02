@@ -15,7 +15,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Telegram уведомления (только в группу)
 const TELEGRAM_TOKEN = "8754493631:AAH9vZvWTS-SOHwk5Y0y7Rbr6klwmgeSgN0";
 const GROUP_CHAT_ID = "-1003850642883";
 
@@ -41,7 +40,6 @@ async function sendOrder(product, btn) {
     const originalText = btn.textContent;
     btn.textContent = '⏳ Отправка...';
     btn.disabled = true;
-
     try {
         const orderData = {
             userId: user?.id || 0,
@@ -189,7 +187,6 @@ async function showProducts(categoryId, categoryName) {
 window.showCategories = showCategories;
 window.showProducts = showProducts;
 
-// Модалка
 const modal = document.getElementById('customModal');
 document.getElementById('customOrderBtn').addEventListener('click', () => modal.classList.add('active'));
 document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('active'));
