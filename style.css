@@ -17,6 +17,7 @@ body {
     padding: 20px 16px;
 }
 
+/* Шапка */
 .header {
     margin-bottom: 28px;
 }
@@ -29,6 +30,7 @@ body {
     color: transparent;
 }
 
+/* Навигация */
 .nav-bar {
     display: flex;
     align-items: center;
@@ -47,6 +49,7 @@ body {
     font-weight: 600;
 }
 
+/* Категории (сетка) */
 .categories-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -58,6 +61,10 @@ body {
     padding: 20px 12px;
     text-align: center;
     cursor: pointer;
+    transition: transform 0.2s;
+}
+.category-card:active {
+    transform: scale(0.97);
 }
 .category-image {
     width: 80px;
@@ -79,6 +86,7 @@ body {
     font-weight: 500;
 }
 
+/* Товары (список) */
 .products-list {
     display: flex;
     flex-direction: column;
@@ -108,6 +116,7 @@ body {
 .product-title {
     font-size: 18px;
     font-weight: 600;
+    margin-bottom: 4px;
 }
 .product-price {
     font-size: 22px;
@@ -131,7 +140,11 @@ body {
     font-weight: 600;
     cursor: pointer;
 }
+.buy-btn:active {
+    background: #0055cc;
+}
 
+/* Кнопка "Заказать под заказ" */
 .custom-order-btn {
     position: fixed;
     bottom: 20px;
@@ -149,7 +162,11 @@ body {
     cursor: pointer;
     z-index: 100;
 }
+.custom-order-btn:active {
+    transform: translateX(-50%) scale(0.97);
+}
 
+/* Модальное окно */
 .modal {
     position: fixed;
     top: 0;
@@ -190,6 +207,7 @@ body {
     font-family: inherit;
     font-size: 15px;
     margin-bottom: 20px;
+    resize: vertical;
 }
 .modal-btn {
     width: 100%;
@@ -207,12 +225,14 @@ body {
     color: #007aff;
 }
 
+/* Состояния */
 .loading, .empty {
     text-align: center;
     padding: 60px 20px;
     color: #8e8e93;
 }
 
+/* Тёмная тема */
 @media (prefers-color-scheme: dark) {
     .category-image, .product-image {
         background: #2c2c2e;
