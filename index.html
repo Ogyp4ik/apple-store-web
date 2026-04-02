@@ -526,7 +526,7 @@ async function showCategories() {
     }
 }
 
-// ========== ИСПРАВЛЕННАЯ ФУНКЦИЯ showProducts ==========
+// ========== ВРЕМЕННО: ПОКАЗЫВАЕМ ВСЕ ТОВАРЫ БЕЗ ФИЛЬТРАЦИИ ==========
 async function showProducts(categoryId, categoryName) {
     const app = document.getElementById('app');
     app.innerHTML = `
@@ -537,18 +537,8 @@ async function showProducts(categoryId, categoryName) {
         <div class="loading">Загрузка товаров...</div>
     `;
     try {
-        // 1. Ищем товары по ID документа категории
-        let snap = await db.collection('products').where('categoryId', '==', categoryId).get();
-        
-        // 2. Если не нашли — ищем по полю id категории
-        if (snap.empty) {
-            const catDoc = await db.collection('categories').doc(categoryId).get();
-            const catData = catDoc.data();
-            if (catData && catData.id) {
-                snap = await db.collection('products').where('categoryId', '==', catData.id).get();
-            }
-        }
-
+        // ВРЕМЕННО: показываем ВСЕ товары из базы
+        const snap = await db.collection('products').get();
         const products = [];
         snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
 
@@ -558,7 +548,7 @@ async function showProducts(categoryId, categoryName) {
                     <button class="back-btn" onclick="showCategories()">←</button>
                     <h2>${categoryName}</h2>
                 </div>
-                <div class="empty">В этой категории пока нет товаров</div>
+                <div class="empty">В базе нет товаров</div>
             `;
             return;
         }
