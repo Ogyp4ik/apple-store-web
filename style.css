@@ -8,7 +8,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
     background: var(--tg-theme-bg-color, #ffffff);
     color: var(--tg-theme-text-color, #1d1d1f);
-    transition: background 0.3s ease;
+    transition: background 0.3s ease, color 0.3s ease;
     padding-bottom: 90px;
 }
 
@@ -55,11 +55,12 @@ body {
     letter-spacing: -0.3px;
 }
 
-/* Категории (сетка 2 колонки) */
+/* Сетка категорий */
 .categories-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
+    margin-bottom: 24px;
 }
 .category-card {
     background: var(--tg-theme-secondary-bg-color, #f5f5f7);
@@ -94,7 +95,7 @@ body {
     font-weight: 500;
 }
 
-/* Товары (вертикальный список) */
+/* Товары */
 .products-list {
     display: flex;
     flex-direction: column;
@@ -157,8 +158,8 @@ body {
     background: #0055cc;
 }
 
-/* Градиентная кнопка внизу */
-.gradient-btn {
+/* Кнопка "Заказать под заказ" */
+.custom-order-btn {
     position: fixed;
     bottom: 20px;
     left: 50%;
@@ -177,21 +178,9 @@ body {
     transition: all 0.2s;
     z-index: 100;
 }
-.gradient-btn:active {
+.custom-order-btn:active {
     transform: translateX(-50%) scale(0.97);
     opacity: 0.9;
-}
-
-/* Состояния */
-.loading-spinner {
-    text-align: center;
-    padding: 40px;
-    color: var(--tg-theme-hint-color, #8e8e93);
-}
-.empty {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--tg-theme-hint-color, #8e8e93);
 }
 
 /* Модалка */
@@ -235,6 +224,7 @@ body {
     font-family: inherit;
     font-size: 15px;
     margin-bottom: 20px;
+    resize: vertical;
 }
 .modal-btn {
     width: 100%;
@@ -250,6 +240,13 @@ body {
     margin-top: 12px;
     background: none;
     color: #007aff;
+}
+
+/* Состояния загрузки */
+.loading, .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--tg-theme-hint-color, #8e8e93);
 }
 
 /* Тёмная тема */
