@@ -265,6 +265,7 @@ async function showCategories() {
     }
 }
 
+// ========== ФУНКЦИЯ showProducts — ищет товары по ID документа категории ==========
 async function showProducts(categoryId, categoryName) {
     const app = document.getElementById('app');
     app.innerHTML = `
@@ -275,17 +276,15 @@ async function showProducts(categoryId, categoryName) {
         <div class="loading">Загрузка товаров...</div>
     `;
     try {
-        console.log('🔍 categoryId:', categoryId);
-        const catDoc = await db.collection('categories').doc(categoryId).get();
-        if (!catDoc.exists) {
-            app.innerHTML = `<div class="empty">Ошибка: категория не найдена (ID: ${categoryId})</div>`;
-            return;
-        }
-        const catData = catDoc.data();
-        const targetId = catData.id;
-        const snap = await db.collection('products').where('categoryId', '==', targetId).get();
+        console.log('🔍 Ищем товары с categoryId =', categoryId);
+        
+        // Ищем товары по ID документа категории
+        const snap = await db.collection('products').where('categoryId', '==', categoryId).get();
+        console.log('✅ Найдено товаров:', snap.size);
+        
         const products = [];
         snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+
         if (!products.length) {
             app.innerHTML = `
                 <div class="nav-bar">
@@ -296,6 +295,7 @@ async function showProducts(categoryId, categoryName) {
             `;
             return;
         }
+
         app.innerHTML = `
             <div class="nav-bar">
                 <button class="back-btn" onclick="showCategories()">←</button>
@@ -304,11 +304,13 @@ async function showProducts(categoryId, categoryName) {
             <div class="products-list" id="list"></div>
         `;
         const list = document.getElementById('list');
+
         products.forEach(p => {
             const specs = [
                 p.storage && p.storage !== '—' ? `Память: ${p.storage}` : '',
                 p.color   && p.color   !== '—' ? `Цвет: ${p.color}`   : ''
             ].filter(Boolean).join(' · ');
+
             const el = document.createElement('div');
             el.className = 'product-card';
             el.innerHTML = `
@@ -327,6 +329,7 @@ async function showProducts(categoryId, categoryName) {
             });
             list.appendChild(el);
         });
+
     } catch(e) {
         console.error(e);
         document.getElementById('app').innerHTML = `
