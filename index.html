@@ -173,6 +173,7 @@ async function sendTelegramNotification(message) {
     } catch(e) { console.error(e); }
 }
 
+// ========== ИСПРАВЛЕННАЯ sendOrder (с @ перед username) ==========
 async function sendOrder(product, btn) {
     const orig = btn.textContent;
     btn.textContent = 'Отправка...';
@@ -189,7 +190,11 @@ async function sendOrder(product, btn) {
             type: 'product'
         };
         await db.collection('orders').add(order);
-        await sendTelegramNotification(`🛍 НОВЫЙ ЗАКАЗ!\n👤 ${order.username}\n📱 ${order.productName}\n💾 ${order.storage}\n🎨 ${order.color}\n💰 ${order.price.toLocaleString()} ₽`);
+        
+        // Теперь username выводится с @
+        const message = `🛍 НОВЫЙ ЗАКАЗ!\n👤 ${order.username ? '@' + order.username : 'Не указан'}\n📱 ${order.productName}\n💾 ${order.storage}\n🎨 ${order.color}\n💰 ${order.price.toLocaleString()} ₽`;
+        
+        await sendTelegramNotification(message);
         tg.showAlert('✅ Заявка отправлена!');
         btn.textContent = '✅ Отправлено!';
         btn.style.background = '#34c759';
@@ -218,7 +223,7 @@ async function sendCustomOrder(comment) {
             type: 'custom'
         };
         await db.collection('orders').add(order);
-        await sendTelegramNotification(`📦 ЗАКАЗ ПОД ЗАКАЗ!\n👤 ${order.username}\n📝 ${comment}`);
+        await sendTelegramNotification(`📦 ЗАКАЗ ПОД ЗАКАЗ!\n👤 ${order.username ? '@' + order.username : 'Не указан'}\n📝 ${comment}`);
         tg.showAlert('✅ Заявка принята!');
     } catch(e) { console.error(e); tg.showAlert('❌ Ошибка'); }
 }
@@ -265,7 +270,7 @@ async function showCategories() {
     }
 }
 
-// ========== ФУНКЦИЯ showProducts — ищет товары по ID документа категории ==========
+// ========== ФУНКЦИЯ showProducts — описание выводится ==========
 async function showProducts(categoryId, categoryName) {
     const app = document.getElementById('app');
     app.innerHTML = `
@@ -276,12 +281,7 @@ async function showProducts(categoryId, categoryName) {
         <div class="loading">Загрузка товаров...</div>
     `;
     try {
-        console.log('🔍 Ищем товары с categoryId =', categoryId);
-        
-        // Ищем товары по ID документа категории
         const snap = await db.collection('products').where('categoryId', '==', categoryId).get();
-        console.log('✅ Найдено товаров:', snap.size);
-        
         const products = [];
         snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
 
@@ -319,6 +319,7 @@ async function showProducts(categoryId, categoryName) {
                 </div>
                 <div class="product-info">
                     <div class="product-title">${p.name}</div>
+                    <div class="product-description">${escapeHtml(p.description || '')}</div>
                     <div class="product-price">${(p.price||0).toLocaleString()} ₽</div>
                     ${specs ? `<div class="product-specs">${specs}</div>` : ''}
                     <button class="buy-btn">Купить</button>
@@ -340,6 +341,13 @@ async function showProducts(categoryId, categoryName) {
             <div class="empty">Ошибка: ${e.message}</div>
         `;
     }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 window.showCategories = showCategories;
